@@ -90,10 +90,11 @@ programToLLVM files
 
         preDefinitions files
         mapM_ (uncurry defineStruct) . Map.toList $ fullStructs
-
         mapM_ definition defs
+        
         mainDefinition insts files
-        use moduleDefs
+        e <- use moduleDefs
+        pure e
 
 
 
@@ -159,7 +160,7 @@ addStrings prefix = do
     addString :: (Text, Int) -> LLVM Operand
     addString (theString, i) = do
       let
-        -- Convert the string into an array of 8-bit chars
+      -- Convert the string into an array of 8-bit chars
         chars = BS.unpack . encodeUtf8 $ theString
       -- Get the length of the string
         n  = fromIntegral . succ . length $ chars

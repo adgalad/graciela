@@ -140,150 +140,150 @@ callable :: Type -> String -> Either a Operand
 callable t = Right . ConstantOperand . GlobalReference t . Name
 
 firstSetString, nextSetString :: String
-firstSetString = "_firstSet"
-nextSetString = "_nextSet"
+firstSetString = "___firstSet"
+nextSetString = "___nextSet"
 
 copyArrayString :: String
-copyArrayString = "_copyArray"
+copyArrayString = "___copyArray"
 
 firstMultisetString, nextMultisetString :: String
-firstMultisetString = "_firstMultiset"
-nextMultisetString = "_nextMultiset"
+firstMultisetString = "___firstMultiset"
+nextMultisetString = "___nextMultiset"
 
 firstSequenceString, nextSequenceString :: String
-firstSequenceString = "_firstSequence"
-nextSequenceString = "_nextSequence"
+firstSequenceString = "___firstSequence"
+nextSequenceString = "___nextSequence"
 
 initTrashCollectorString, freeTrashCollectorString, openScopeString :: String
-initTrashCollectorString = "_initTrashCollector"
-freeTrashCollectorString = "_freeTrashCollector"
-openScopeString = "_openScope"
+initTrashCollectorString = "___initTrashCollector"
+freeTrashCollectorString = "___freeTrashCollector"
+openScopeString = "___openScope"
 
 newSetString, newSeqString, newMultisetString :: String
-newSetString = "_newSet"
-newSeqString = "_newSequence"
-newMultisetString = "_newMultiset"
+newSetString = "___newSet"
+newSeqString = "___newSequence"
+newMultisetString = "___newMultiset"
 
 newSetPairString,newMultisetPairString, newSeqPairString, newFunction, newRelation :: String
-newSetPairString      = "_newSetPair"
-newMultisetPairString = "_newMultisetPair"
-newSeqPairString      = "_newSequencePair"
-newFunction           = "_newFunction"
-newRelation           = "_newRelation"
+newSetPairString      = "___newSetPair"
+newMultisetPairString = "___newMultisetPair"
+newSeqPairString      = "___newSequencePair"
+newFunction           = "___newFunction"
+newRelation           = "___newRelation"
 
 equalSetString, equalSeqString, equalMultisetString :: String
-equalSetString      = "_equalSet"
-equalSeqString      = "_equalSequence"
-equalMultisetString = "_equalMultiset"
-equalFuncString     = "_equalFunction"
-equalRelString      = "_equalRelation"
-equalSetPairString      = "_equalSetPair"
-equalSeqPairString      = "_equalSequencePair"
-equalMultisetPairString = "_equalMultisetPair"
-equalTupleString        = "_equalTuple"
+equalSetString      = "___equalSet"
+equalSeqString      = "___equalSequence"
+equalMultisetString = "___equalMultiset"
+equalFuncString     = "___equalFunction"
+equalRelString      = "___equalRelation"
+equalSetPairString      = "___equalSetPair"
+equalSeqPairString      = "___equalSequencePair"
+equalMultisetPairString = "___equalMultisetPair"
+equalTupleString        = "___equalTuple"
 
 evalFuncString, evalRelString :: String
-evalFuncString     = "_pairFunction"
-evalRelString      = "_pairRelation"
+evalFuncString     = "___pairFunction"
+evalRelString      = "___pairRelation"
 
 sizeSetString, sizeSeqString, sizeMultisetString, sizeRelString, sizeFuncString :: String
-sizeSetString      = "_sizeSet"
-sizeSeqString      = "_sizeSequence"
-sizeMultisetString = "_sizeMultiset"
-sizeRelString      = "_sizeRelation"
-sizeFuncString     = "_sizeFunction"
+sizeSetString      = "___sizeSet"
+sizeSeqString      = "___sizeSequence"
+sizeMultisetString = "___sizeMultiset"
+sizeRelString      = "___sizeRelation"
+sizeFuncString     = "___sizeFunction"
 
 supersetSetString, supersetMultisetString :: String
-supersetSetString      = "_includesSet"
-supersetMultisetString = "_includesMultiset"
-supersetSetPairString      = "_includesSetPair"
-supersetMultisetPairString = "_includesMultisetPair"
+supersetSetString      = "___includesSet"
+supersetMultisetString = "___includesMultiset"
+supersetSetPairString      = "___includesSetPair"
+supersetMultisetPairString = "___includesMultisetPair"
 
 ssupersetSetString, ssupersetMultisetString :: String
-ssupersetSetString      = "_includesSSet"
-ssupersetMultisetString = "_includesSMultiset"
-ssupersetSetPairString  = "_includesSSetPair"
-ssupersetMultisetPairString = "_includesSMultisetPair"
+ssupersetSetString      = "___includesSSet"
+ssupersetMultisetString = "___includesSMultiset"
+ssupersetSetPairString  = "___includesSSetPair"
+ssupersetMultisetPairString = "___includesSMultisetPair"
 
 insertSetString, insertSeqString, insertMultisetString :: String
-insertSetString      = "_insertSet"
-insertSeqString      = "_insertSequence"
-insertMultisetString = "_insertMultiset"
+insertSetString      = "___insertSet"
+insertSeqString      = "___insertSequence"
+insertMultisetString = "___insertMultiset"
 
 insertSetPairString, insertMultisetPairString, insertSeqPairString:: String
-insertSetPairString      = "_insertSetPair"
-insertMultisetPairString = "_insertMultisetPair"
-insertSeqPairString      = "_insertSequencePair"
+insertSetPairString      = "___insertSetPair"
+insertMultisetPairString = "___insertMultisetPair"
+insertSeqPairString      = "___insertSequencePair"
 
 
 isElemSetString, isElemMultisetString, isElemSeqString :: String
-isElemSetString      = "_isElemSet"
-isElemMultisetString = "_isElemMultiset"
-isElemSeqString      = "_isElemSequence"
-isElemSetPairString      = "_isElemSetPair"
-isElemMultisetPairString = "_isElemMultisetPair"
-isElemSeqPairString      = "_isElemSequencePair"
+isElemSetString      = "___isElemSet"
+isElemMultisetString = "___isElemMultiset"
+isElemSeqString      = "___isElemSequence"
+isElemSetPairString      = "___isElemSetPair"
+isElemMultisetPairString = "___isElemMultisetPair"
+isElemSeqPairString      = "___isElemSequencePair"
 
 
 unionSetString, unionMultisetString :: String
-unionSetString          = "_unionSet"
-unionMultisetString     = "_unionMultiset"
-unionSetPairString      = "_unionSetPair"
-unionMultisetPairString = "_unionMultisetPair"
-unionFunctionString     = "_unionFunction"
+unionSetString          = "___unionSet"
+unionMultisetString     = "___unionMultiset"
+unionSetPairString      = "___unionSetPair"
+unionMultisetPairString = "___unionMultisetPair"
+unionFunctionString     = "___unionFunction"
 
 intersectSetString, intersectMultisetString :: String
-intersectSetString          = "_intersectSet"
-intersectMultisetString     = "_intersectMultiset"
-intersectSetPairString      = "_intersectSetPair"
-intersectMultisetPairString = "_intersectMultisetPair"
-intersectFunctionString     = "_intersectFunction"
+intersectSetString          = "___intersectSet"
+intersectMultisetString     = "___intersectMultiset"
+intersectSetPairString      = "___intersectSetPair"
+intersectMultisetPairString = "___intersectMultisetPair"
+intersectFunctionString     = "___intersectFunction"
 
 differenceSetString, differenceMultisetString :: String
-differenceSetString          = "_differenceSet"
-differenceMultisetString     = "_differenceMultiset"
-differenceSetPairString      = "_differenceSetPair"
-differenceMultisetPairString = "_differenceMultisetPair"
-differenceFunctionString     = "_differenceFunction"
+differenceSetString          = "___differenceSet"
+differenceMultisetString     = "___differenceMultiset"
+differenceSetPairString      = "___differenceSetPair"
+differenceMultisetPairString = "___differenceMultisetPair"
+differenceFunctionString     = "___differenceFunction"
 
 multisetSumString, concatSequenceString :: String
-multisetSumString        = "_sumMultiset"
-concatSequenceString     = "_concatSequence"
-multisetPairSumString    = "_sumMultisetPair"
-concatSequencePairString = "_concatSequencePair"
-atSequenceString         = "_atSequence"
-atSequencePairString     = "_atSequencePair"
+multisetSumString        = "___sumMultiset"
+concatSequenceString     = "___concatSequence"
+multisetPairSumString    = "___sumMultisetPair"
+concatSequencePairString = "___concatSequencePair"
+atSequenceString         = "___atSequence"
+atSequencePairString     = "___atSequencePair"
 
 
 freeString :: String
-freeString = "_free"
+freeString = "___free"
 
 mallocString :: String
-mallocString   = "_malloc"
--- mallocTCString = "_mallocTC"
+mallocString   = "___malloc"
+-- mallocTCString = "___mallocTC"
 
 addPointerString, removePointerString, derefPointerString :: String
-addPointerString    = "_addPointer"
-removePointerString = "_removePointer"
-derefPointerString  = "_derefPointer"
+addPointerString    = "___addPointer"
+removePointerString = "___removePointer"
+derefPointerString  = "___derefPointer"
 
 lnString      :: String
-lnString      = "_ln"
+lnString      = "___ln"
 writeIString  :: String
-writeIString  = "_writeInt"
+writeIString  = "___writeInt"
 writeBString  :: String
-writeBString  = "_writeBool"
+writeBString  = "___writeBool"
 writeCString  :: String
-writeCString  = "_writeChar"
+writeCString  = "___writeChar"
 writeFString  :: String
-writeFString  = "_writeDouble"
+writeFString  = "___writeDouble"
 writeSString  :: String
-writeSString  = "_writeString"
+writeSString  = "___writeString"
 writePString  :: String
-writePString  = "_writePointer"
+writePString  = "___writePointer"
 
 randomInt     :: String
-randomInt     = "_random"
+randomInt     = "___random"
 
 sqrtString    :: String
 sqrtString    = "llvm.sqrt.f64"
@@ -292,38 +292,38 @@ fabsString    = "llvm.fabs.f64"
 powString     :: String
 powString     = "llvm.pow.f64"
 powIString  :: String
-powIString  = "_powInt"
+powIString  = "___powInt"
 
 minnumString  :: String
-minnumString  = "_min"
+minnumString  = "___min"
 maxnumString  :: String
-maxnumString  = "_max"
+maxnumString  = "___max"
 minnumFstring :: String
-minnumFstring = "_minF"
+minnumFstring = "___minF"
 maxnumFstring :: String
-maxnumFstring = "_maxF"
+maxnumFstring = "___maxF"
 
 readIntStd    :: String
-readIntStd    = "_readIntStd"
+readIntStd    = "___readIntStd"
 readBoolStd   :: String
-readBoolStd   = "_readBoolStd"
+readBoolStd   = "___readBoolStd"
 readCharStd   :: String
-readCharStd   = "_readCharStd"
+readCharStd   = "___readCharStd"
 readFloatStd  :: String
-readFloatStd  = "_readDoubleStd"
+readFloatStd  = "___readDoubleStd"
 
 openFileStr   :: String
-openFileStr   = "_openFile"
+openFileStr   = "___openFile"
 readFileBool  :: String
-readFileBool  = "_readFileBool"
+readFileBool  = "___readFileBool"
 readFileInt   :: String
-readFileInt   = "_readFileInt"
+readFileInt   = "___readFileInt"
 closeFileStr  :: String
-closeFileStr  = "_closeFile"
+closeFileStr  = "___closeFile"
 readFileChar  :: String
-readFileChar  = "_readFileChar"
+readFileChar  = "___readFileChar"
 readFileFloat :: String
-readFileFloat = "_readFileDouble"
+readFileFloat = "___readFileDouble"
 
 
 safeAdd       :: Word32 -> String

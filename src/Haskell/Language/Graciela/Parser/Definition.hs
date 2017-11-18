@@ -49,6 +49,32 @@ import           Text.Megaparsec                      (between, eof,
                                                        withRecovery, (<|>))
 --------------------------------------------------------------------------------
 
+skipAssertions :: SourcePos -> Maybe (Maybe Expression) -> Maybe Expression
+skipAssertions pos = \case
+  Nothing -> Just $ Expression 
+    { loc = Location (pos, pos)
+    , expType = GBool
+    , expConst = True
+    , exp' = Value (BoolV True) }
+  Just e -> e 
+
+-- externFunction :: Parser (Maybe Definition)
+-- externFunction = do 
+--   lookAhead $ match TokFunc
+
+--   Location(_,from) <- match TokFunc
+--   symbolTable %= openScope from
+--   idFrom <- getPosition
+--   funcName' <- safeIdentifier
+--   idTo <- getPosition
+--   symbolTable %= openScope from
+--   funcParams' <- parens doFuncParams
+--   match' TokArrow
+--   logicAW <- Set.member LogicAnywhere <$> use pragmas
+--   funcRetType <- if logicAW then abstractType else type'
+
+--   pure Nothing
+
 function :: Parser (Maybe Definition)
 function = do
   lookAhead $ match TokFunc
@@ -91,7 +117,7 @@ function = do
   decls'  <- sequence <$> declaration `endBy` match' TokSemicolon
   useLet .= False
   prePos  <- getPosition
-  pre'    <- precond <!> (prePos, UnknownError "Precondition was expected")
+  pre'    <- skipAssertions prePos <$> (optional precond)
   postFrom <- getPosition
 
   symbolTable %= openScope postFrom
@@ -106,7 +132,7 @@ function = do
           , _varValue = Nothing
           , _varConst = False }}
 
-  post'   <- postcond <!> (postFrom, UnknownError "Postcondition was expected")
+  post'  <- skipAssertions postFrom <$> (optional postcond)
   postTo <- getPosition
 
   symbolTable %= closeScope postTo
@@ -126,7 +152,7 @@ function = do
       , _crParams     = params
       , _crType       = funcRetType
       , _crTypeArgs   = callTypeArgs
-      , _crRecAllowed = isJust bnd
+      , _crRecAllowed = True --isJust bnd
       , _crRecursive  = False  }
     _ -> Nothing
 
@@ -268,7 +294,7 @@ procedure = do
 
   decls'  <- declarationOrRead
   prePos  <- getPosition
-  pre'    <- precond <!> (prePos, UnknownError "Missing Precondition ")
+  pre'    <- skipAssertions prePos <$> optional precond
   postFrom <- getPosition
  
   symbolTable %= openScope postFrom
@@ -285,7 +311,7 @@ procedure = do
           , _varValue = Nothing
           , _varConst = False }}
 
-  post'   <- postcond <!> (postFrom, UnknownError "Postcondition was expected")
+  post'   <- skipAssertions postFrom <$> optional postcond
   postTo <- getPosition
   symbolTable %= closeScope postTo
   bnd     <- join <$> optional A.bound
@@ -303,7 +329,7 @@ procedure = do
       , _crParams     = params
       , _crType       = ()
       , _crTypeArgs   = callTypeArgs
-      , _crRecAllowed = isJust bnd
+      , _crRecAllowed = True
       , _crRecursive  = False  }
     _ -> Nothing
 

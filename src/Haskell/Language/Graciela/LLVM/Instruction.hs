@@ -49,7 +49,7 @@ import           LLVM.General.AST.Instruction       (FastMathFlags (..),
 import qualified LLVM.General.AST.Instruction       as LLVM (Instruction)
 import           LLVM.General.AST.IntegerPredicate  (IntegerPredicate (..))
 import           LLVM.General.AST.Name              (Name (..))
-import           LLVM.General.AST.Operand           (CallableOperand,
+import           LLVM.General.AST.Operand           (MetadataNode(..) ,CallableOperand, 
                                                      Operand (..))
 import           LLVM.General.AST.Type              hiding (void)
 --------------------------------------------------------------------------------
@@ -191,8 +191,6 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
       assign' lval value = do
         doGet .= False
         ref <- objectRef lval
-        doGet .= True
-        type' <- toLLVMType . objType $ lval
         addInstruction $ Do Store
           { volatile       = False
           , address        = ref
@@ -270,8 +268,9 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
     asserts <- use evalAssertions
     recArgs <- fmap (,[]) <$> if pRecursiveCall && asserts 
         then do
-          boundOperand <- fromMaybe (internal "boundless recursive function 3.") <$> use boundOp
-          pure [constantOperand GBool . Left $ 1, boundOperand]
+          use boundOp >>= pure . \case 
+            Nothing -> []
+            Just boundOperand -> [constantOperand GBool . Left $ 1, boundOperand]
         else if prp && asserts
           then pure [constantOperand GBool . Left $ 0, constantOperand GInt . Left $0]
       else pure []
@@ -377,7 +376,7 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
             pure $ (LocalReference (ptr type') label, [])
 
           _ -> case exp' of
-            Obj o -> do
+            Obj o | not (mode `elem` [In, Const] && not (expType =:= T.GOneOf [T.GADataType, T.GAArray]))-> do
               prima <- insertVar (objectName o)
               addInstruction $ prima := Alloca
                 { allocatedType = ptr type'
@@ -523,27 +522,8 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
               pure primaRef
 
             _ -> do
+              (,[]) <$> expression' e
 
-              aux@(Name name) <- insertVar "temp_"
-
-              addInstruction $ aux := Alloca
-                { allocatedType = type'
-                , numElements   = Nothing
-                , alignment     = 4
-                , metadata      = [] }
-
-              expr <- expression' e
-
-              addInstruction $ Do Store
-                { volatile = False
-                , address  = LocalReference type' aux
-                , value    = expr
-                , maybeAtomicity = Nothing
-                , alignment = 4
-                , metadata  = [] }
-              label <- newLabel "cast"
-
-              pure $ (LocalReference type' aux,[])
 
   Free { idName, freeType } -> do
     labelLoad  <- newLabel "freeLoad"

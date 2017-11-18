@@ -44,31 +44,15 @@ object :: Object -> LLVM Operand
 object obj@Object { objType, obj' } = do
   dfunc <- use doingFunction
   objRef <- objectRef obj
-  case obj' of
-    Variable {name, mode} | dfunc && t' && mode /= Nothing ->
-       pure objRef
-
-    _ -> do
-      label <- newLabel "varObj"
-      t <- toLLVMType objType
-
-      addInstruction $ label := Load
-        { volatile       = False
-        , address        = objRef
-        , maybeAtomicity = Nothing
-        , alignment      = 4
-        , metadata       = [] }
-
-      pure $ LocalReference t label
-
-  where
-    t' = objType =:= basic     || objType == I64
-      || objType =:= highLevel || objType =:= GATypeVar
-
-
--- objectRef :: Object -> LLVM Operand
--- objectRef o = fst <$> objectRef' o False
-
+  label <- newLabel "varObj"
+  t <- toLLVMType objType
+  addInstruction $ label := Load
+    { volatile       = False
+    , address        = objRef
+    , maybeAtomicity = Nothing
+    , alignment      = 4
+    , metadata       = [] }
+  pure $ LocalReference t label
 
 -- Get the reference to the object.
 -- indicate that the object is not a deref, array access or field access inside a procedure
@@ -81,7 +65,6 @@ objectRef (Object loc t obj') = do
     Variable { name , mode } -> do
       name' <- getVariableName name
       pure $ LocalReference objType' name'
-
 
     Index inner isPtr indices -> if isPtr then do
         ref <- objectRef inner
@@ -321,7 +304,7 @@ objectRef (Object loc t obj') = do
         -- couple relation, must no use a getter
         let
           isSelf = case inner of
-            Object{ obj' = Variable { name } } -> name == "_self"
+            Object{ obj' = Variable { name } } -> name == "__self"
             _                                  -> False
 
         pure $ canDoGet && not (isCoupling && isSelf)

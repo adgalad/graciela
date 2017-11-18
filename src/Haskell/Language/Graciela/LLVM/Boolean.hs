@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PostfixOperators  #-}
 {-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE LambdaCase        #-}
 
 module Language.Graciela.LLVM.Boolean
   ( boolean
@@ -342,8 +343,9 @@ boolean true false e@Expression { loc, exp' } = do
       asserts <- use evalAssertions
       recArgs <- fmap (,[]) <$> if fRecursiveCall && asserts
         then do
-          boundOperand <- fromMaybe (internal "boundless recursive function 1.") <$> use boundOp
-          pure [constantOperand GBool . Left $ 1, boundOperand]
+          use boundOp >>= pure . \case 
+            Nothing -> []
+            Just boundOperand -> [constantOperand GBool . Left $ 1, boundOperand]
         else if fRecursiveFunc && asserts
           then pure [constantOperand GBool . Left $ 0, constantOperand GInt . Left $0]
           else pure []

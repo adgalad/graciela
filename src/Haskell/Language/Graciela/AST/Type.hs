@@ -111,6 +111,7 @@ data Type
 
   | GPointer Type -- ^ Pointer type.
 
+  | GAArray
   | GArray
     { dimensions :: Seq Expression
     , innerType  :: Type
@@ -298,6 +299,10 @@ instance Semigroup Type where
   GEnum _ <> GInt = GInt
   GInt <> GEnum _ = GInt
 
+  GAArray <> a@GArray{} = a
+  a@GArray{} <> GAArray = a
+  GAArray <> GAArray = GAArray
+
   GAlias na ta <> GAlias nb tb 
     | na == nb = ta <> tb
     | na /= nb = GUndef
@@ -343,6 +348,7 @@ instance Show Type where
 
         GATypeVar  -> "a type variable"
         GADataType -> "a data type"
+        GAArray    -> "an array"
         GATuple    -> "a tuple"
         GAlias n t -> show n <> " (" <> show t <> ")"
         I64               -> "64-bit int"

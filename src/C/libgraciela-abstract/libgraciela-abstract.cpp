@@ -51,9 +51,8 @@ extern "C" {
         break;
     }
 
-    _freeTrashCollector();
+    ___freeTrashCollector();
     exit(EXIT_FAILURE);
-
   }
 
   void mark(TCTuple t){
@@ -61,13 +60,13 @@ extern "C" {
   }
 
   /* Set */
-  int8_t *_newSet(){
+  int8_t *___newSet(){
       Set *set = new Set;
       mark(TCTuple((int8_t*)set,SET));
       return (int8_t*)set;
   }
 
-  Iterator * _firstSet(int8_t *ptr){
+  Iterator *___firstSet(int8_t *ptr){
       Set* set = (Set*)ptr;
 
       Set::iterator *it =(Set::iterator*)malloc (sizeof(Set::iterator));
@@ -86,7 +85,7 @@ extern "C" {
           return i;
       }
   }
-  Iterator *_nextSet(Iterator* i){
+  Iterator *___nextSet(Iterator* i){
       Set::iterator *next = (Set::iterator*)i->it;
       Set* type = (Set*)i->type;
 
@@ -104,7 +103,7 @@ extern "C" {
       }
   }
 
-  Iterator * _firstMultiset(int8_t *ptr){
+  Iterator *___firstMultiset(int8_t *ptr){
     Multiset* set = (Multiset*)ptr;
 
     Multiset::iterator *it =(Multiset::iterator*)malloc (sizeof(Multiset::iterator));
@@ -123,7 +122,7 @@ extern "C" {
       return i;
     }
   }
-  Iterator *_nextMultiset(Iterator* i){
+  Iterator *___nextMultiset(Iterator* i){
     Multiset::iterator *next = (Multiset::iterator*)i->it;
     Multiset* type = (Multiset*)i->type;
 
@@ -141,7 +140,7 @@ extern "C" {
     }
   }
 
-  Iterator * _firstSequence(int8_t *ptr){
+  Iterator *___firstSequence(int8_t *ptr){
     Sequence* set = (Sequence*)ptr;
 
     Sequence::iterator *it =(Sequence::iterator*)malloc (sizeof(Sequence::iterator));
@@ -161,7 +160,7 @@ extern "C" {
     }
   }
 
-  Iterator *_nextSequence(Iterator* i){
+  Iterator *___nextSequence(Iterator* i){
     Sequence::iterator *next = (Sequence::iterator*)i->it;
     Sequence* type = (Sequence*)i->type;
 
@@ -179,28 +178,28 @@ extern "C" {
     }
   }
 
-  int _equalSet(int8_t *ptr1, int8_t* ptr2){
+  int ___equalSet(int8_t *ptr1, int8_t* ptr2){
       return *(Set*)ptr1 == *(Set*)ptr2;
   }
 
-  void _insertSet(int8_t *ptr, t x){
+  void ___insertSet(int8_t *ptr, t x){
       Set *s = (Set*) ptr;
       s->insert(x);
   }
 
-  int _sizeSet(int8_t *ptr) {
+  int ___sizeSet(int8_t *ptr) {
       return (int) ((Set*) ptr)->size();
   }
 
-  int _isElemSet(int8_t *ptr, t x){
+  int ___isElemSet(int8_t *ptr, t x){
       Set *s = (Set*) ptr;
       return s->find(x) != s->end();
   }
 
-  int8_t* _unionSet(int8_t *ptr1, int8_t * ptr2) {
+  int8_t *___unionSet(int8_t *ptr1, int8_t * ptr2) {
       Set *set1   = (Set*)ptr1,
           *set2   = (Set*)ptr2,
-          *newset = (Set*)_newSet();
+          *newset = (Set*)___newSet();
 
       set_union(set1->begin(), set1->end(),
                 set2->begin(), set2->end(),
@@ -208,10 +207,10 @@ extern "C" {
       return (int8_t*)newset;
   }
 
-  int8_t* _intersectSet(int8_t *ptr1, int8_t * ptr2) {
+  int8_t *___intersectSet(int8_t *ptr1, int8_t * ptr2) {
       Set *set1   = (Set*)ptr1,
           *set2   = (Set*)ptr2,
-          *newset = (Set*)_newSet();
+          *newset = (Set*)___newSet();
 
       set_intersection(set1->begin(), set1->end(),
                        set2->begin(), set2->end(),
@@ -220,10 +219,10 @@ extern "C" {
       return (int8_t*)newset;
   }
 
-  int8_t* _differenceSet(int8_t *ptr1, int8_t * ptr2) {
+  int8_t *___differenceSet(int8_t *ptr1, int8_t * ptr2) {
       Set *set1   = (Set*)ptr1,
           *set2   = (Set*)ptr2,
-          *newset = (Set*)_newSet();
+          *newset = (Set*)___newSet();
 
       set_difference(set1->begin(), set1->end(),
                      set2->begin(), set2->end(),
@@ -232,7 +231,7 @@ extern "C" {
       return (int8_t*)newset;
   }
 
-  int _includesSet(int8_t* ptr1, int8_t* ptr2){
+  int ___includesSet(int8_t* ptr1, int8_t* ptr2){
     Set *set1 = (Set*)ptr1,
         *set2 = (Set*)ptr2;
 
@@ -240,7 +239,7 @@ extern "C" {
                     set2->begin(), set2->end());
   }
 
-  int _includesSSet(int8_t* ptr1, int8_t* ptr2){
+  int ___includesSSet(int8_t* ptr1, int8_t* ptr2){
     Set *set1 = (Set*)ptr1,
         *set2 = (Set*)ptr2;
 
@@ -250,22 +249,22 @@ extern "C" {
            and set1->size() > set2->size();
   }
 
-  void _freeSet(int8_t* ptr) {
+  void ___freeSet(int8_t* ptr) {
       delete (Set*)ptr;
   }
 
   /* SetPair */
-  int8_t *_newSetPair(){
+  int8_t *___newSetPair(){
     SetPair *set = new SetPair;
     mark(TCTuple((int8_t*)set,SETPAIR));
     return (int8_t*)set;
   }
 
-  int _equalSetPair(int8_t *ptr1, int8_t* ptr2){
+  int ___equalSetPair(int8_t *ptr1, int8_t* ptr2){
     return *(SetPair*)ptr1 == *(SetPair*)ptr2;
   }
 
-  void _insertSetPair(int8_t *ptr, gtuple *x){
+  void ___insertSetPair(int8_t *ptr, gtuple *x){
     SetPair *s = (SetPair*) ptr;
     s->insert(Tuple(x->a,x->b));
   }
@@ -274,15 +273,15 @@ extern "C" {
 //    return (int) ((Set*) ptr)->size();
 //  }
 //
-  int _isElemSetPair(int8_t *ptr, gtuple *x){
+  int ___isElemSetPair(int8_t *ptr, gtuple *x){
     SetPair *s = (SetPair*) ptr;
     return s->find(Tuple(x->a,x->b)) != s->end();
   }
 
-  int8_t* _unionSetPair(int8_t *ptr1, int8_t * ptr2) {
+  int8_t* ___unionSetPair(int8_t *ptr1, int8_t * ptr2) {
     SetPair *set1   = (SetPair*)ptr1,
             *set2   = (SetPair*)ptr2,
-            *newset = (SetPair*)_newSet();
+            *newset = (SetPair*)___newSet();
 
     set_union(set1->begin(), set1->end(),
               set2->begin(), set2->end(),
@@ -291,10 +290,10 @@ extern "C" {
     return (int8_t*)newset;
   }
 
-  int8_t* _intersectSetPair(int8_t *ptr1, int8_t * ptr2) {
+  int8_t* ___intersectSetPair(int8_t *ptr1, int8_t * ptr2) {
     SetPair *set1   = (SetPair*)ptr1,
             *set2   = (SetPair*)ptr2,
-            *newset = (SetPair*)_newSet();
+            *newset = (SetPair*)___newSet();
 
     set_intersection(set1->begin(), set1->end(),
                      set2->begin(), set2->end(),
@@ -303,10 +302,10 @@ extern "C" {
     return (int8_t*)newset;
   }
 
-  int8_t* _differenceSetPair(int8_t *ptr1, int8_t * ptr2) {
+  int8_t* ___differenceSetPair(int8_t *ptr1, int8_t * ptr2) {
     SetPair *set1   = (SetPair*)ptr1,
     *set2   = (SetPair*)ptr2,
-    *newset = (SetPair*)_newSet();
+    *newset = (SetPair*)___newSet();
 
     set_difference(set1->begin(), set1->end(),
                    set2->begin(), set2->end(),
@@ -315,7 +314,7 @@ extern "C" {
     return (int8_t*)newset;
   }
 
-  int _includesSetPair(int8_t* ptr1, int8_t* ptr2){
+  int ___includesSetPair(int8_t* ptr1, int8_t* ptr2){
     Set *set1 = (Set*)ptr1,
     *set2 = (Set*)ptr2;
 
@@ -323,7 +322,7 @@ extern "C" {
                     set2->begin(), set2->end());
   }
 
-  int _includesSSetPair(int8_t* ptr1, int8_t* ptr2){
+  int ___includesSSetPair(int8_t* ptr1, int8_t* ptr2){
     SetPair *set1 = (SetPair*)ptr1,
             *set2 = (SetPair*)ptr2;
 
@@ -333,46 +332,46 @@ extern "C" {
            and set1->size() > set2->size();
   }
 
-  void _freeSetPair(int8_t* ptr) {
+  void ___freeSetPair(int8_t* ptr) {
     delete (SetPair*)ptr;
   }
 
   /* MultiSet */
 
-  int8_t* _newMultiset(){
+  int8_t* ___newMultiset(){
       Multiset *mul = new Multiset;
       mark(TCTuple((int8_t*)mul,MULTISET));
       return (int8_t*)mul;
   }
 
-  int _equalMultiset(int8_t *ptr1, int8_t* ptr2){
+  int ___equalMultiset(int8_t *ptr1, int8_t* ptr2){
       return *(Multiset*)ptr1 == *(Multiset*)ptr2;
 
   }
 
-  void _insertMultiset(int8_t *ptr, t x){
+  void ___insertMultiset(int8_t *ptr, t x){
       Multiset *s = (Multiset*) ptr;
       s->insert(x);
   }
 
-  int _isElemMultiset(int8_t *ptr, t x){
+  int ___isElemMultiset(int8_t *ptr, t x){
       Multiset *s = (Multiset*) ptr;
       return s->find(x) != s->end();
   }
 
-  int _sizeMultiset(int8_t *ptr){
+  int ___sizeMultiset(int8_t *ptr){
       return (int) ((Multiset*) ptr)->size();
   }
 
-  int _countMultiset(t x, int8_t *ptr){
+  int ___countMultiset(t x, int8_t *ptr){
       Multiset *s = (Multiset*) ptr;
       return (int) s->count(x);
   }
 
-  int8_t* _unionMultiset(int8_t *ptr1, int8_t * ptr2) {
+  int8_t* ___unionMultiset(int8_t *ptr1, int8_t * ptr2) {
       Multiset *set1   = (Multiset*)ptr1,
                *set2   = (Multiset*)ptr2,
-               *newSet = (Multiset*)_newMultiset();
+               *newSet = (Multiset*)___newMultiset();
 
       set_union(set1->begin(), set1->end(),
                 set2->begin(), set2->end(),
@@ -381,10 +380,10 @@ extern "C" {
       return (int8_t*)newSet;
   }
 
-  int8_t* _sumMultiset(int8_t* ptr1, int8_t* ptr2){
+  int8_t* ___sumMultiset(int8_t* ptr1, int8_t* ptr2){
     Multiset *set1   = (Multiset*)ptr1,
              *set2   = (Multiset*)ptr2,
-             *newSet = (Multiset*)_newMultiset();
+             *newSet = (Multiset*)___newMultiset();
 
     for (Multiset::iterator it = set1->begin() ; it != set1->end(); ++it){
       newSet->insert(*it);
@@ -396,10 +395,10 @@ extern "C" {
 
     return (int8_t*)newSet;
   }
-  int8_t* _intersectMultiset(int8_t *ptr1, int8_t * ptr2) {
+  int8_t* ___intersectMultiset(int8_t *ptr1, int8_t * ptr2) {
       Multiset *set1   = (Multiset*)ptr1,
                *set2   = (Multiset*)ptr2,
-               *newSet = (Multiset*)_newMultiset();
+               *newSet = (Multiset*)___newMultiset();
 
       set_intersection(set1->begin(), set1->end(),
                        set2->begin(), set2->end(),
@@ -408,10 +407,10 @@ extern "C" {
       return (int8_t*)newSet;
   }
 
-  int8_t* _differenceMultiset(int8_t *ptr1, int8_t * ptr2) {
+  int8_t* ___differenceMultiset(int8_t *ptr1, int8_t * ptr2) {
       Multiset *set1   = (Multiset*)ptr1,
                *set2   = (Multiset*)ptr2,
-               *newSet = (Multiset*)_newMultiset();
+               *newSet = (Multiset*)___newMultiset();
 
       set_difference(set1->begin(), set1->end(),
                      set2->begin(), set2->end(),
@@ -420,7 +419,7 @@ extern "C" {
       return (int8_t*)newSet;
   }
 
-  int _includesMultiset(int8_t* ptr1, int8_t* ptr2){
+  int ___includesMultiset(int8_t* ptr1, int8_t* ptr2){
       Multiset *set1 = (Multiset*)ptr1,
                *set2 = (Multiset*)ptr2;
 
@@ -428,7 +427,7 @@ extern "C" {
                       set2->begin(), set2->end());
   }
 
-  int _includesSMultiset(int8_t* ptr1, int8_t* ptr2){
+  int ___includesSMultiset(int8_t* ptr1, int8_t* ptr2){
     Multiset *set1 = (Multiset*)ptr1,
              *set2 = (Multiset*)ptr2;
 
@@ -437,29 +436,29 @@ extern "C" {
            and set1->size() > set2->size();
   }
 
-  void _freeMultiset(int8_t* ptr) {
+  void ___freeMultiset(int8_t* ptr) {
       delete (Multiset*)ptr;
   }
 
   /* MultiSetPair */
 
-  int8_t* _newMultisetPair(){
+  int8_t* ___newMultisetPair(){
     MultisetPair *mul = new MultisetPair;
     mark(TCTuple((int8_t*)mul,MULTISETPAIR));
     return (int8_t*)mul;
   }
 
-  int _equalMultisetPair(int8_t *ptr1, int8_t* ptr2){
+  int ___equalMultisetPair(int8_t *ptr1, int8_t* ptr2){
     return *(MultisetPair*)ptr1 == *(MultisetPair*)ptr2;
 
   }
 
-  void _insertMultisetPair(int8_t *ptr, gtuple* x){
+  void ___insertMultisetPair(int8_t *ptr, gtuple* x){
     MultisetPair *s = (MultisetPair*) ptr;
     s->insert(Tuple(x->a,x->b));
   }
 
-  int _isElemMultisetPair(int8_t *ptr, gtuple* x){
+  int ___isElemMultisetPair(int8_t *ptr, gtuple* x){
     MultisetPair *s = (MultisetPair*) ptr;
     return s->find(Tuple(x->a,x->b)) != s->end();
   }
@@ -468,15 +467,15 @@ extern "C" {
 //    return (int) ((MultisetPair*) ptr)->size();
 //  }
 
-  int _countMultisetPair(gtuple* x, int8_t *ptr){
+  int ___countMultisetPair(gtuple* x, int8_t *ptr){
     MultisetPair *s = (MultisetPair*) ptr;
     return (int) s->count(Tuple(x->a,x->b));
   }
 
-  int8_t* _unionMultisetPair(int8_t *ptr1, int8_t * ptr2) {
+  int8_t* ___unionMultisetPair(int8_t *ptr1, int8_t * ptr2) {
     MultisetPair *set1   = (MultisetPair*)ptr1,
                  *set2   = (MultisetPair*)ptr2,
-                 *newSet = (MultisetPair*)_newMultisetPair();
+                 *newSet = (MultisetPair*)___newMultisetPair();
 
     set_union(set1->begin(), set1->end(),
               set2->begin(), set2->end(),
@@ -485,10 +484,10 @@ extern "C" {
     return (int8_t*)newSet;
   }
 
-  int8_t* _sumMultisetPair(int8_t* ptr1, int8_t* ptr2){
+  int8_t* ___sumMultisetPair(int8_t* ptr1, int8_t* ptr2){
     MultisetPair *set1   = (MultisetPair*)ptr1,
                  *set2   = (MultisetPair*)ptr2,
-                 *newSet = (MultisetPair*)_newMultisetPair();
+                 *newSet = (MultisetPair*)___newMultisetPair();
 
     for (MultisetPair::iterator it = set1->begin() ; it != set1->end(); ++it){
       newSet->insert(*it);
@@ -500,10 +499,10 @@ extern "C" {
 
     return (int8_t*)newSet;
   }
-  int8_t* _intersectMultisetPair(int8_t *ptr1, int8_t * ptr2) {
+  int8_t* ___intersectMultisetPair(int8_t *ptr1, int8_t * ptr2) {
     MultisetPair *set1   = (MultisetPair*)ptr1,
                  *set2   = (MultisetPair*)ptr2,
-                 *newSet = (MultisetPair*)_newMultisetPair();
+                 *newSet = (MultisetPair*)___newMultisetPair();
 
     set_intersection(set1->begin(), set1->end(),
                      set2->begin(), set2->end(),
@@ -512,10 +511,10 @@ extern "C" {
     return (int8_t*)newSet;
   }
 
-  int8_t* _differenceMultisetPair(int8_t *ptr1, int8_t * ptr2) {
+  int8_t* ___differenceMultisetPair(int8_t *ptr1, int8_t * ptr2) {
     MultisetPair *set1   = (MultisetPair*)ptr1,
                  *set2   = (MultisetPair*)ptr2,
-                 *newSet = (MultisetPair*)_newMultisetPair();
+                 *newSet = (MultisetPair*)___newMultisetPair();
 
     set_difference(set1->begin(), set1->end(),
                    set2->begin(), set2->end(),
@@ -524,7 +523,7 @@ extern "C" {
     return (int8_t*)newSet;
   }
 
-  int _includesMultisetPair(int8_t* ptr1, int8_t* ptr2){
+  int ___includesMultisetPair(int8_t* ptr1, int8_t* ptr2){
     MultisetPair *set1 = (MultisetPair*)ptr1,
                  *set2 = (MultisetPair*)ptr2;
 
@@ -532,7 +531,7 @@ extern "C" {
                     set2->begin(), set2->end());
   }
 
-  int _includesSMultisetPair(int8_t* ptr1, int8_t* ptr2){
+  int ___includesSMultisetPair(int8_t* ptr1, int8_t* ptr2){
     MultisetPair *set1 = (MultisetPair*)ptr1,
                  *set2 = (MultisetPair*)ptr2;
 
@@ -541,29 +540,29 @@ extern "C" {
     and set1->size() > set2->size();
   }
 
-  void _freeMultisetPair(int8_t* ptr) {
+  void ___freeMultisetPair(int8_t* ptr) {
     delete (MultisetPair*)ptr;
   }
 
   /* Function */
 
-  int8_t *_newFunction(){
+  int8_t *___newFunction(){
       Function *function = new Function();
       mark(TCTuple((int8_t*)function,FUNCTION));
       return (int8_t*) function;
   }
 
-  int _equalFunction(int8_t* ptr1, int8_t* ptr2){
+  int ___equalFunction(int8_t* ptr1, int8_t* ptr2){
       return *(Function*)ptr1 == *(Function*)ptr2;
   }
 
-  void _insertFunction(int8_t *ptr, t key, t value) {
+  void ___insertFunction(int8_t *ptr, t key, t value) {
       ((Function*)ptr)->insert(Tuple(key,value));
   }
 
-  int8_t *_funcFromSet(int8_t* setPtr, char* filePath, int line, int col){
+  int8_t *___funcFromSet(int8_t* setPtr, char* filePath, int line, int col){
       SetPair* set   = (SetPair*)setPtr;
-      Function *func = (Function*)_newFunction();
+      Function *func = (Function*)___newFunction();
 
     for(SetPair::iterator it = set->begin(); it != set->end(); ++it){
         Function::iterator it2 = func->find(it->first);
@@ -576,11 +575,11 @@ extern "C" {
       return (int8_t*)func;
   }
 
-  int _sizeFunction(int8_t *ptr){
+  int ___sizeFunction(int8_t *ptr){
       return (int) ((Function*)ptr)->size();
   }
 
-  int _isElemFunction(int8_t *ptr, t key, t value) {
+  int ___isElemFunction(int8_t *ptr, t key, t value) {
       Function *function = (Function*)ptr;
       Function::iterator it = function->find(key);
 
@@ -592,9 +591,9 @@ extern "C" {
       return false;
   }
 
-  int8_t *_domFunction(int8_t *ptr){
+  int8_t *___domFunction(int8_t *ptr){
       Function *function = (Function*)ptr;
-      Set      *set = (Set*)_newSet();
+      Set      *set = (Set*)___newSet();
       for(Function::iterator it = function->begin(); it != function->end(); ++it){
           set->insert(it->first);
       }
@@ -602,9 +601,9 @@ extern "C" {
       return (int8_t*) set;
   }
 
-  int8_t *_codomainFunction(int8_t *ptr){
+  int8_t *___codomainFunction(int8_t *ptr){
     Function *function = (Function*)ptr;
-    Set      *set = (Set*)_newSet();
+    Set      *set = (Set*)___newSet();
     for(Function::iterator it = function->begin(); it != function->end(); ++it){
       set->insert(it->second);
     }
@@ -612,7 +611,7 @@ extern "C" {
     return (int8_t*)set;
   }
 
-  t _pairFunction(int8_t *ptr, t k, char* filePath, int line, int col){
+  t ___pairFunction(int8_t *ptr, t k, char* filePath, int line, int col){
     Function *function    = (Function*)ptr;
     Function::iterator it = function->find(k);
     if (it == function->end()){
@@ -622,10 +621,10 @@ extern "C" {
 
   }
 
-  int8_t *_compositionFunction(int8_t *ptr1, int8_t *ptr2){
+  int8_t *___compositionFunction(int8_t *ptr1, int8_t *ptr2){
       Function *f1      = (Function*)ptr1,
                *f2      = (Function*)ptr2,
-               *newFunc = (Function*)_newFunction();
+               *newFunc = (Function*)___newFunction();
 
       for(Function::iterator it = f1->begin(); it != f1->end(); ++it){
 
@@ -637,9 +636,9 @@ extern "C" {
       return (int8_t*)newFunc;
   }
 
-  int8_t* _toSetFunction(int8_t* ptr1){
+  int8_t* ___toSetFunction(int8_t* ptr1){
     Function* func = (Function*) ptr1;
-    SetPair* set = (SetPair*) _newSetPair();
+    SetPair* set = (SetPair*)___newSetPair();
 
     for(Function::iterator it = func->begin(); it != func->end(); ++it){
       set->insert(Tuple(it->first, it->second));
@@ -647,10 +646,10 @@ extern "C" {
     return (int8_t*) set;
   }
 
-  int8_t* _unionFunction(int8_t* ptr1, int8_t* ptr2, char* filePath, int line, int col){
+  int8_t* ___unionFunction(int8_t* ptr1, int8_t* ptr2, char* filePath, int line, int col){
     Function *func1    = (Function*)ptr1,
              *func2    = (Function*)ptr2,
-             *newFunc = (Function*)_newMultisetPair();
+             *newFunc = (Function*)___newMultisetPair();
 
     for(Function::iterator it = func1->begin(); it != func1->end(); ++it){
       newFunc->insert(Tuple(it->first, it->second));
@@ -674,10 +673,10 @@ extern "C" {
 
 
 
-  int8_t* _intersectFunction(int8_t* ptr1, int8_t* ptr2){
+  int8_t* ___intersectFunction(int8_t* ptr1, int8_t* ptr2){
     Relation *func1   = (Relation*)ptr1,
              *func2   = (Relation*)ptr2,
-             *newfunc = (Relation*)_newRelation();
+             *newfunc = (Relation*)___newRelation();
 
     set_intersection(func1->begin(), func1->end(),
                      func2->begin(), func2->end(),
@@ -686,10 +685,10 @@ extern "C" {
     return (int8_t*)newfunc;
   }
 
-  int8_t* _differenceFunction(int8_t* ptr1, int8_t* ptr2){
+  int8_t* ___differenceFunction(int8_t* ptr1, int8_t* ptr2){
     Relation *func1   = (Relation*)ptr1,
              *func2   = (Relation*)ptr2,
-             *newfunc = (Relation*)_newRelation();
+             *newfunc = (Relation*)___newRelation();
 
     set_difference(func1->begin(), func1->end(),
                    func2->begin(), func2->end(),
@@ -698,64 +697,64 @@ extern "C" {
     return (int8_t*)newfunc;
   }
 
-  void _freeFunction(int8_t* ptr) {
+  void ___freeFunction(int8_t* ptr) {
       delete (Function*)ptr;
   }
 
   /* Relation */
 
 
-  int8_t *_newRelation(){
+  int8_t *___newRelation(){
       Relation *rel = new Relation();
       mark(TCTuple((int8_t*)rel,RELATION));
       return (int8_t*) rel;
   }
 
-  int _equalRelation(int8_t *ptr1, int8_t *ptr2){
+  int ___equalRelation(int8_t *ptr1, int8_t *ptr2){
       return *(Relation*)ptr1 == *(Relation*)ptr2;
   }
 
-  void _insertRelation(int8_t *ptr, t key, t value) {
+  void ___insertRelation(int8_t *ptr, t key, t value) {
       ((Relation*)ptr)->insert(Tuple(key,value));
   }
 
-  int8_t *_relationFromSet(int8_t* setPtr){
+  int8_t *___relationFromSet(int8_t* setPtr){
       SetPair* set  = (SetPair*)setPtr;
-      Relation* rel = (Relation*)_newRelation();
+      Relation* rel = (Relation*)___newRelation();
       *rel = *set;
       return (int8_t*)rel;
   }
 
-  int _sizeRelation(int8_t *ptr){
+  int ___sizeRelation(int8_t *ptr){
       return (int) ((Relation*)ptr)->size();
   }
 
-  int _isElemRelation(int8_t *ptr, t key, t value) {
+  int ___isElemRelation(int8_t *ptr, t key, t value) {
       Relation *rel = (Relation*)ptr;
       return rel->find(Tuple(key,value)) != rel->end();
   }
 
-  int8_t* _domRelation(int8_t *ptr){
+  int8_t* ___domRelation(int8_t *ptr){
       Relation *rel = (Relation*)ptr;
-      Set      *set = (Set*)_newSet();
+      Set      *set = (Set*)___newSet();
       for(Relation::iterator it = rel->begin(); it != rel->end(); ++it){
           set->insert(it->first);
       }
       return (int8_t*) set;
   }
 
-  int8_t* _codomainRelation(int8_t *ptr){
+  int8_t* ___codomainRelation(int8_t *ptr){
     Relation *rel = (Relation*)ptr;
-    Set      *set = (Set*)_newSet();
+    Set      *set = (Set*)___newSet();
     for(Relation::iterator it = rel->begin(); it != rel->end(); ++it){
       set->insert(it->second);
     }
     return (int8_t*) set;
   }
 
-  int8_t* _pairRelation(int8_t *ptr, t key){
+  int8_t* ___pairRelation(int8_t *ptr, t key){
       Relation *rel = (Relation*)ptr;
-      Set      *set = (Set*)_newSet();
+      Set      *set = (Set*)___newSet();
 
       for(Relation::iterator it = rel->begin(); it != rel->end(); ++it){
           if (it->first == key)
@@ -764,14 +763,14 @@ extern "C" {
       return (int8_t*) set;
   }
 
-  int8_t *_compositionRelation(int8_t *ptr1, int8_t *ptr2){
+  int8_t *___compositionRelation(int8_t *ptr1, int8_t *ptr2){
       Relation *r1     = (Relation*)ptr1,
-               *newRel = (Relation*)_newRelation();
+               *newRel = (Relation*)___newRelation();
 
 
       for(Relation::iterator it = r1->begin(); it != r1->end(); ++it){
 
-          Set *rge2 = (Set*)_pairRelation(ptr2, it->second);
+          Set *rge2 = (Set*)___pairRelation(ptr2, it->second);
           for(Set::iterator it2 = rge2->begin(); it2 != rge2->end(); ++it2){
               newRel->insert(Tuple(it->first,*it2));
           }
@@ -780,34 +779,34 @@ extern "C" {
       return (int8_t*)newRel;
   }
 
-  int8_t* _toSetRelation(int8_t* ptr1){
+  int8_t* ___toSetRelation(int8_t* ptr1){
     return ptr1;
   }
 
-  void _freeRelation(int8_t* ptr) {
+  void ___freeRelation(int8_t* ptr) {
       delete (Relation*)ptr;
   }
 
   /* Sequence */
 
-  int8_t *_newSequence(){
+  int8_t *___newSequence(){
       Sequence *s = new Sequence;
       mark(TCTuple((int8_t*)s,SEQUENCE));
       return (int8_t*) s;
   }
 
-  int _equalSequence(int8_t* ptr1, int8_t* ptr2){
+  int ___equalSequence(int8_t* ptr1, int8_t* ptr2){
       return *(Sequence*)ptr1 == *(Sequence*)ptr2;
   }
 
-  int _isElemSequence(int8_t *ptr, t x){
+  int ___isElemSequence(int8_t *ptr, t x){
       Sequence *seq = (Sequence*)ptr;
       for (Sequence::iterator it = seq->begin() ; it != seq->end() ; ++it){
           if (*it == x) return true;
       }
       return false;
   }
-  int _countSequence(t x, int8_t* ptr){
+  int ___countSequence(t x, int8_t* ptr){
     Sequence* seq = (Sequence*)ptr;
     int i = 0;
     for (Sequence::iterator it = seq->begin(); it != seq->end(); ++it) {
@@ -817,24 +816,24 @@ extern "C" {
     }
     return i;
   }
-  void _insertSequence(int8_t* ptr, t x){
+  void ___insertSequence(int8_t* ptr, t x){
       ((Sequence*)ptr)->push_back(x);
   }
 
-  int8_t* _concatSequence(int8_t* ptr1, int8_t* ptr2){
+  int8_t* ___concatSequence(int8_t* ptr1, int8_t* ptr2){
     Sequence *seq1   = (Sequence*)ptr1,
              *seq2   = (Sequence*)ptr2,
-             *newSeq = (Sequence*)_newSequence();
+             *newSeq = (Sequence*)___newSequence();
     newSeq->insert( newSeq->end(), seq1->begin(), seq1->end());
     newSeq->insert( newSeq->end(), seq2->begin(), seq2->end());
     return (int8_t*)newSeq;
   }
 
-  int _sizeSequence(int8_t* ptr){
+  int ___sizeSequence(int8_t* ptr){
       return (int) ((Sequence*)ptr)->size();
   }
 
-  t _atSequence(int8_t*ptr, int pos, char* filePath, int line, int col){
+  t ___atSequence(int8_t*ptr, int pos, char* filePath, int line, int col){
     Sequence* seq = (Sequence*)ptr;
     if (pos < 0){
       abortAbstract(A_NEGATIVE_POS, filePath, line, col);
@@ -845,33 +844,33 @@ extern "C" {
     return (*seq)[pos];
   }
 
-  void _freeSequence(int8_t* ptr) {
+  void ___freeSequence(int8_t* ptr) {
       delete (Sequence*)ptr;
   }
 
-  int _equalTuple(gtuple* x, gtuple* y){
+  int ___equalTuple(gtuple* x, gtuple* y){
     return x->a == y->a and x->b == y->b;
   }
   /* SequencePair */
 
-  int8_t *_newSequencePair(){
+  int8_t *___newSequencePair(){
     SequencePair *s = new SequencePair;
     mark(TCTuple((int8_t*)s,SEQUENCEPAIR));
     return (int8_t*) s;
   }
 
-  int _equalSequencePair(int8_t* ptr1, int8_t* ptr2){
+  int ___equalSequencePair(int8_t* ptr1, int8_t* ptr2){
     return *(SequencePair*)ptr1 == *(SequencePair*)ptr2;
   }
 
-  int _isElemSequencePair(int8_t *ptr, gtuple* x){
+  int ___isElemSequencePair(int8_t *ptr, gtuple* x){
     SequencePair *seq = (SequencePair*)ptr;
     for (SequencePair::iterator it = seq->begin() ; it != seq->end() ; ++it){
       if (*it == Tuple(x->a,x->b)) return true;
     }
     return false;
   }
-  int _countSequencePair(gtuple* x, int8_t* ptr){
+  int ___countSequencePair(gtuple* x, int8_t* ptr){
     SequencePair* seq = (SequencePair*)ptr;
     int i = 0;
     for (SequencePair::iterator it = seq->begin(); it != seq->end(); ++it) {
@@ -881,14 +880,14 @@ extern "C" {
     }
     return i;
   }
-  void _insertSequencePair(int8_t* ptr, gtuple* x){
+  void ___insertSequencePair(int8_t* ptr, gtuple* x){
     ((SequencePair*)ptr)->push_back(Tuple(x->a,x->b));
   }
 
-  int8_t* _concatSequencePair(int8_t* ptr1, int8_t* ptr2){
+  int8_t* ___concatSequencePair(int8_t* ptr1, int8_t* ptr2){
     SequencePair *seq1   = (SequencePair*)ptr1,
                  *seq2   = (SequencePair*)ptr2,
-                 *newSeq = (SequencePair*)_newSequencePair();
+                 *newSeq = (SequencePair*)___newSequencePair();
     newSeq->insert( newSeq->end(), seq1->begin(), seq1->end());
     newSeq->insert( newSeq->end(), seq2->begin(), seq2->end());
     return (int8_t*)newSeq;
@@ -898,7 +897,7 @@ extern "C" {
 //    return (int) ((SequencePair*)ptr)->size();
 //  }
 
-  gtuple _atSequencePair(int8_t*ptr, int pos, char* filePath, int line, int col){
+  gtuple ___atSequencePair(int8_t*ptr, int pos, char* filePath, int line, int col){
     SequencePair* seq = (SequencePair*)ptr;
     if (pos < 0){
       abortAbstract(A_NEGATIVE_POS, filePath, line, col,pos);
@@ -911,59 +910,59 @@ extern "C" {
     return tuple;
   }
 
-  void _freeSequencePair(int8_t* ptr) {
+  void ___freeSequencePair(int8_t* ptr) {
     delete (SequencePair*)ptr;
   }
 
 
   /* Trash Collector */
 
-  void _initTrashCollector(){
+  void ___initTrashCollector(){
     srand (time(NULL));
     _stack = new vector<TrashCollector>;
   }
 
-  void _openScope(){
+  void ___openScope(){
       TrashCollector tc = TrashCollector();
       tc.reserve(64);
       _stack->push_back(tc);
   }
 
-  void _closeScope(){
+  void ___closeScope(){
       TrashCollector tc = (*_stack)[_stack->size()-1];
       _stack->pop_back();
       for (TrashCollector::iterator it = tc.begin(); it != tc.end(); ++it){
           switch (it->second) {
               case SET: {
-                  _freeSet(it->first);
+                  ___freeSet(it->first);
                   break;
               }
               case MULTISET: {
-                  _freeMultiset(it->first);
+                  ___freeMultiset(it->first);
                   break;
               }
               case FUNCTION: {
-                  _freeFunction(it->first);
+                  ___freeFunction(it->first);
                   break;
               }
               case RELATION: {
-                  _freeRelation(it->first);
+                  ___freeRelation(it->first);
                   break;
               }
               case SEQUENCE: {
-                  _freeSequence(it->first);
+                  ___freeSequence(it->first);
                   break;
               }
               case SETPAIR: {
-                  _freeSetPair(it->first);
+                  ___freeSetPair(it->first);
                   break;
               }
               case MULTISETPAIR: {
-                _freeMultisetPair(it->first);
+                ___freeMultisetPair(it->first);
                 break;
               }
               case SEQUENCEPAIR: {
-                _freeSequencePair(it->first);
+                ___freeSequencePair(it->first);
                 break;
               }
               case ITERATOR: {
@@ -979,10 +978,10 @@ extern "C" {
       tc.clear();
   }
 
-  void _freeTrashCollector(){
+  void ___freeTrashCollector(){
       for (int i = 0 ; i < _stack->size(); i++)
       {
-          _closeScope();
+          ___closeScope();
       }
 
       delete (_stack);
@@ -991,12 +990,12 @@ extern "C" {
 
 
 /* Dynamic Memory Verifications */
-void _addPointer(int8_t* ptr){
+void ___addPointer(int8_t* ptr){
   dynMemSet.insert(ptr);
   // printf(">>%p\n", ptr);
 }
 
-void _removePointer(int8_t* ptr, char* filePath, int l, int c){
+void ___removePointer(int8_t* ptr, char* filePath, int l, int c){
   set<int8_t*>::iterator p = dynMemSet.find(ptr);
   if ( p == dynMemSet.end()) {
     abortAbstract(A_REMOVE_POINTER, filePath, l, c);
@@ -1006,7 +1005,7 @@ void _removePointer(int8_t* ptr, char* filePath, int l, int c){
   }
 }
 
-void _derefPointer(int8_t* ptr, int p, char* filePath, int l, int c){
+void ___derefPointer(int8_t* ptr, int p, char* filePath, int l, int c){
   if (ptr == 0){
     abortAbstract(A_NULL_POINTER, filePath, l, c);
     exit(EXIT_FAILURE);
@@ -1017,13 +1016,13 @@ void _derefPointer(int8_t* ptr, int p, char* filePath, int l, int c){
   }
 }
 
-char *_readln(int **i){
+char *___readln(int **i){
   std::string str;
   std::getline(std::cin, str);
   **i = str.size();
   char *cstr = (char*) malloc(str.length() + 1);
   strcpy(cstr, str.c_str());
-  _addPointer((int8_t*)cstr); 
+  ___addPointer((int8_t*)cstr); 
   return cstr;
 }
 

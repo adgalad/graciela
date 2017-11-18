@@ -221,7 +221,6 @@ compile fileName options = do
               -- types = state ^. typesTable
 
             newast <- programToLLVM files program (optNoAssertions options)
-
             let
               lltName = case optOutName options of
                 Nothing -> (unpack name) <> ".ll"
@@ -269,15 +268,15 @@ compile fileName options = do
             -- (exitCode, out, errs) <- readProcessWithExitCode "echo" ["hola"] ""
 
             putStr out
-            let keep = (optKeepTemp options || optLLVM options)
-            unless (keep) $ do
-              removeFile lltName
-              unless (optLLVM options) $ forM_ lltModFiles $ \file -> 
-                doesFileExist (takeFileName $ file) >>= \x -> when x $
-                  removeFile . takeFileName $ file
-            -- unless (optKeepTemp options) $ 
-            --   forM_ (Map.toList rf) $ \(file, _) -> do 
-            --     removeFile $ replaceExtension file ".ogcl"
+            -- let keep = (optKeepTemp options || optLLVM options)
+            -- unless (keep) $ do
+            --   removeFile lltName
+            --   unless (optLLVM options) $ forM_ lltModFiles $ \file -> 
+            --     doesFileExist (takeFileName $ file) >>= \x -> when x $
+            --       removeFile . takeFileName $ file
+            -- -- unless (optKeepTemp options) $ 
+            -- --   forM_ (Map.toList rf) $ \(file, _) -> do 
+            -- --     removeFile $ replaceExtension file ".ogcl"
 
             case exitCode of
               ExitSuccess ->

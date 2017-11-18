@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings        #-}
 {-# LANGUAGE PostfixOperators         #-}
 {-# LANGUAGE TupleSections            #-}
+{-# LANGUAGE LambdaCase               #-}
 
 module Language.Graciela.LLVM.Expression where
 --------------------------------------------------------------------------------
@@ -1078,10 +1079,11 @@ expression e@Expression { E.loc = (Location(pos,_)), expType, exp'} = do
       asserts <- use evalAssertions
       recArgs <- fmap (,[]) <$> if fRecursiveCall && asserts
         then do
-          boundOperand <- fromMaybe (internal "boundless recursive function 2.") <$> use boundOp
-          pure [constantOperand GBool . Left $ 1, boundOperand]
-        else if fRecursiveFunc && asserts
-          then pure [constantOperand GBool . Left $ 0, constantOperand GInt . Left $0]
+          use boundOp >>= pure . \case 
+            Nothing -> []
+            Just boundOperand -> [constantOperand GBool . Left $ 1, boundOperand]
+        else if (traceShowId fRecursiveFunc) && asserts
+          then pure $ [constantOperand GBool . Left $ 0, constantOperand GInt . Left $0]
           else pure []
       label <- newLabel "funcResult"
       addInstruction $ label := Call
@@ -1105,28 +1107,28 @@ expression e@Expression { E.loc = (Location(pos,_)), expType, exp'} = do
               expression' expr
             else if type' =:= GOneOf[GPointer GAny, GString]
               then do
-                expr <- expression expr
-                let t = case type' of; GString -> GChar; GPointer t -> t
-                type' <- ptr <$> toLLVMType t
+                expression expr
+                -- let t = case type' of; GString -> GChar; GPointer t -> t
+                -- type' <- ptr <$> toLLVMType t
 
-                label <- newLabel "argAlloc"
-                addInstruction $ label := Alloca
-                  { allocatedType = type'
-                  , numElements   = Nothing
-                  , alignment     = 4
-                  , metadata      = [] }
+                -- label <- newLabel "argAlloc"
+                -- addInstruction $ label := Alloca
+                --   { allocatedType = type'
+                --   , numElements   = Nothing
+                --   , alignment     = 4
+                --   , metadata      = [] }
 
-                addInstruction $ Do Store
-                  { volatile = False
-                  , address  = LocalReference type' label
-                  , value    = expr
-                  , maybeAtomicity = Nothing
-                  , alignment = 4
-                  , metadata  = [] }
+                -- addInstruction $ Do Store
+                --   { volatile = False
+                --   , address  = LocalReference type' label
+                --   , value    = expr
+                --   , maybeAtomicity = Nothing
+                --   , alignment = 4
+                --   , metadata  = [] }
 
-                pure $ LocalReference type' label
+                -- pure $ LocalReference type' label
             else case exp' of
-              Obj o         -> do
+              Obj o  -> do
                 label <- newLabel "argCastOb"
                 ref <- objectRef o
                 type' <- ptr <$> toLLVMType type'

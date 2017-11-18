@@ -545,7 +545,7 @@ procedureCall' = do
             pure Nothing
         _ -> pure Nothing
 
-    Just Definition { defLoc, def' = ProcedureDef { procParams, procRecursive }} -> do
+    Just Definition { defLoc, bound, def' = ProcedureDef { procParams }} -> do
       let
         nParams = length procParams
         Location (pos, _) = defLoc
@@ -560,7 +560,7 @@ procedureCall' = do
                 { pName = procName
                 , pArgs = args''
                 , pRecursiveCall = False
-                , pRecursiveProc = procRecursive
+                , pRecursiveProc = isJust bound
                 , pStructArgs    = Nothing }}
         else do
           putError from BadProcNumberOfArgs
@@ -583,7 +583,7 @@ procedureCall' = do
       -- There are two cases: 1) It's being called outside a Data Type.
       --                      2) It's being called in another procedure inside the same Data Type
       --                      
-      --                      Solution: Look for first arguments with type `GDataType`
+      --                      Solution: Look for the first arguments with type `GDataType`
       let
         f = case hasDTType args of
           Nothing -> do
@@ -606,7 +606,7 @@ procedureCall' = do
                   pure Nothing
                 Just Struct { structProcs } -> do
                   case procName `Map.lookup` structProcs of
-                    Just Definition { def' = ProcedureDef { procParams, procRecursive }} -> do
+                    Just Definition { bound, def' = ProcedureDef { procParams }} -> do
                       cs <- use currentStruct
                       let
                         nParams = length procParams
@@ -628,7 +628,7 @@ procedureCall' = do
                             { pName = procName
                             , pArgs = args''
                             , pRecursiveCall = False
-                            , pRecursiveProc = procRecursive
+                            , pRecursiveProc = isJust bound
                             , pStructArgs    = Just (name, typeArgs) } }
 
                     _ -> do
@@ -644,7 +644,7 @@ procedureCall' = do
               Nothing -> internal $ "Could not find DT " <> show name
               Just Struct{structProcs} ->
                 case procName `Map.lookup` structProcs of
-                  Just Definition { def' = ProcedureDef { procParams, procRecursive }} -> do
+                  Just Definition { bound, def' = ProcedureDef { procParams }} -> do
                     let
                       nParams = length procParams
                       ta' = fmap (fillType dtTypeArgs) t'
@@ -663,7 +663,7 @@ procedureCall' = do
                           { pName = procName
                           , pArgs = args''
                           , pRecursiveCall = False
-                          , pRecursiveProc = procRecursive
+                          , pRecursiveProc = isJust bound
                           , pStructArgs    = Just (name, ta') } }
 
                   Nothing -> do
@@ -675,7 +675,7 @@ procedureCall' = do
                     return Nothing
 
             Just (dt@GDataType {dtTypeArgs}, _, sp, _, _) -> case procName `Map.lookup` sp of
-              Just Definition { def' = ProcedureDef { procParams, procRecursive }} -> do
+              Just Definition { bound, def' = ProcedureDef { procParams, procRecursive }} -> do
                 let
                   nParams = length procParams
 
@@ -692,7 +692,7 @@ procedureCall' = do
                       { pName = procName
                       , pArgs = args''
                       , pRecursiveCall = False
-                      , pRecursiveProc = procRecursive
+                      , pRecursiveProc = isJust bound
                       , pStructArgs    = Just (name, dtTypeArgs) } }
 
               Just Definition { def' = FunctionDef {}, defLoc } -> do
@@ -752,7 +752,7 @@ procedureCall' = do
           | otherwise -> f
 
         {- The procedure is neither a global procedure nor the current one,
-           but it might be a struct's procedure so we check for that. -}
+           but it might be a struct's procedure so we to check for that. -}
         Nothing -> f
 
 

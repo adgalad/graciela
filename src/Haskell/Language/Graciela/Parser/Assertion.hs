@@ -28,6 +28,7 @@ import           Text.Megaparsec                      (ParseError, between,
                                                        withRecovery)
 --------------------------------------------------------------------------------
 
+
 bound :: Parser (Maybe Expression)
 bound = between (match TokLeftBound) (match' TokRightBound) (declarative bound')
   where
@@ -71,9 +72,9 @@ assert'' close = do
       pure Nothing
 
 precond, postcond, assertion, invariant, repInv :: Parser (Maybe Expression)
-precond   = assert  TokLeftPre   TokRightPre
-postcond  = assert  TokLeftPost  TokRightPost
+precond   = assert' TokLeftPre   TokRightPre
+postcond  = assert' TokLeftPost  TokRightPost
 assertion = assert' TokLeftBrace TokRightBrace
-invariant = assert  TokLeftInv   TokRightInv
-repInv    = assert  TokLeftRep   TokRightRep
-coupInv   = assert  TokLeftAcopl TokRightAcopl
+invariant = assert' TokLeftInv   TokRightInv
+repInv    = assert' TokLeftRep   TokRightRep
+coupInv   = assert' TokLeftAcopl TokRightAcopl

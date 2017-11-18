@@ -632,7 +632,7 @@ variable = do
                                 { loc
                                 , objType = GDataType structName' abstract t
                                 , obj' = Variable
-                                  { O.name = pack "_self"
+                                  { O.name = pack "__self"
                                   , mode = Nothing }}}}}}
 
                       Nothing -> internal $ "Data Type variable `" <>
@@ -1136,7 +1136,7 @@ call = do
           let RawName fName = exp'
           defs <- lift (use definitions)
           case fName `Map.lookup` defs of
-            Just Definition { defLoc, def' = FunctionDef { funcParams, funcRetType, funcRecursive }} -> do
+            Just Definition { defLoc, bound, def' = FunctionDef { funcParams, funcRetType, funcRecursive }} -> do
               let
                 nArgs   = length args
                 nParams = length funcParams
@@ -1158,7 +1158,7 @@ call = do
                             { fName
                             , fArgs
                             , fRecursiveCall = False
-                            , fRecursiveFunc = funcRecursive
+                            , fRecursiveFunc = isJust bound
                             , fStructArgs = Nothing }}
                       in Just (expr, ProtoNothing, taint)
 
@@ -1174,6 +1174,7 @@ call = do
               case sequence args of
                 Nothing -> pure Nothing
                 Just args' -> do
+                  
                   let
                     aux (es, ts, c0, t0) (e@Expression { expConst, expType }, _, t1) =
                       (es |> e, ts |> expType, c0 && expConst, t0 <> t1)
@@ -1182,9 +1183,19 @@ call = do
                     i64cast e@Expression { E.loc, expType, expConst, exp' } =
                       e { exp' = I64Cast e, expType = I64 }
                     fArgs = fArgs' & elements (`elem` casts) %~ i64cast
-                    SourcePos _ line col = from
+                    SourcePos file line col = from
                     pos' = Expression loc GInt True . Value . IntV . fromIntegral . unPos <$>
                       [ line, col ]
+                  
+                  fileId <- lift (use stringIds) >>= \ids -> 
+                    pure $ case Map.lookup (pack file) ids of
+                      Nothing -> internal "No file name."
+                      Just strId  -> Expression
+                        { E.loc    = Location (from, to)
+                        , expType  = GString
+                        , expConst = True
+                        , exp'     = StringLit strId }
+
 
                   case signatures types of
                     Right (funcRetType, fName, canAbort) -> do
@@ -1196,7 +1207,7 @@ call = do
                           , exp' = FunctionCall
                             { fName
                             , fArgs = fArgs <> if canAbort
-                              then pos'
+                              then [fileId] <> pos'
                               else []
                             , fRecursiveCall = False
                             , fRecursiveFunc = False
@@ -1457,8 +1468,8 @@ call = do
     getFunc name funcs abstName = do
       abstNamesOk <- lift $ use allowAbstNames
       case name `Map.lookup` funcs of
-        Just Definition{ def' = FunctionDef{ funcParams, funcRetType, funcRecursive }} ->
-          pure $ Just (funcParams, funcRetType, Just funcRecursive)
+        Just Definition{ bound, def' = FunctionDef{ funcParams, funcRetType }} ->
+          pure $ Just (funcParams, funcRetType, Just $ if isJust bound then True else False)
         _ -> if abstNamesOk && isJust abstName
           then do
             getStruct (fromJust abstName) >>= \case

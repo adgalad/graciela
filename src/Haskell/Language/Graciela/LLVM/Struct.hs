@@ -123,7 +123,7 @@ defaultConstructor :: Bool -- is a declaration or a definition
 defaultConstructor True name structType _ = do
   let
     procName = "init" <> name
-    selfParam   = Parameter (ptr structType) (Name "_self") []
+    selfParam   = Parameter (ptr structType) (Name "__self") []
     dAllocParam = Parameter boolType (Name "dinamicAlloc") []
 
   addDefinitions $ [defineFunction procName [selfParam, dAllocParam] voidType]
@@ -139,7 +139,7 @@ defaultConstructor _ name structType typeMap = do
   Just Struct { structFields, structAFields } <- use currentStruct
 
   openScope
-  selfName <- insertVar "_self"
+  selfName <- insertVar "__self"
   dAllocName <- insertVar "dinamicAlloc"
 
   let
@@ -291,14 +291,14 @@ defaultConstructor _ name structType typeMap = do
 
         let
           funStr = case t of
-            GSet GTuple{}      -> "_newSetPair"
-            GSet _             -> "_newSet"
-            GMultiset GTuple{} -> "_newMultisetPair"
-            GMultiset _        -> "_newMultiset"
-            GSeq GTuple{}      -> "_newSequencePair"
-            GSeq _             -> "_newSequence"
-            GFunc _ _          -> "_newFunction"
-            GRel _ _           -> "_newRelation"
+            GSet GTuple{}      -> "___newSetPair"
+            GSet _             -> "___newSet"
+            GMultiset GTuple{} -> "___newMultisetPair"
+            GMultiset _        -> "___newMultiset"
+            GSeq GTuple{}      -> "___newSequencePair"
+            GSeq _             -> "___newSequence"
+            GFunc _ _          -> "___newFunction"
+            GRel _ _           -> "___newRelation"
 
         addInstruction $ newCollection := Call
           { tailCallKind       = Nothing
@@ -386,7 +386,7 @@ defaultDestructor :: Bool -- is a declaration or a definition
 defaultDestructor True name structType _ _= do
   let
     procName = "destroy" <> name
-    selfParam   = Parameter (ptr structType) (Name "_self") []
+    selfParam   = Parameter (ptr structType) (Name "__self") []
 
   addDefinitions $ [defineFunction procName [selfParam] voidType]
 
@@ -400,7 +400,7 @@ defaultDestructor _ name structType typeMap pos = do
   Just Struct { structFields, structAFields } <- use currentStruct
 
   openScope
-  selfName <- insertVar "_self"
+  selfName <- insertVar "__self"
 
   let
     self = LocalReference structType selfName
@@ -493,7 +493,7 @@ defaultCopy _ name structType typeMap = do
   sourceStructName <- insertVar "sourceStruct"
   destStructName   <- insertVar "destStruct"
 
-  symTable . _head %= Map.insert (pack "_self") sourceStructName
+  symTable . _head %= Map.insert (pack "__self") sourceStructName
   let
     sourceStruct = LocalReference structType sourceStructName
     destStruct   = LocalReference structType destStructName
@@ -602,7 +602,7 @@ defineGetters True insts name t = do
             _              -> internal $ "Could not build the getter of a non member lval"
 
           procName = "get_" <> unpack varName <> "-" <> name
-          selfParam = Parameter (ptr t) (Name "_self") []
+          selfParam = Parameter (ptr t) (Name "__self") []
         
         addDefinitions $ [defineFunction procName [selfParam] (pointerType)]
 
@@ -623,7 +623,7 @@ defineGetters _ insts name t = do
         (proc #)
 
         openScope
-        name' <- insertVar "_self"
+        name' <- insertVar "__self"
 
         value <- expression' expr
         doGet .= False
@@ -674,7 +674,7 @@ defineStructInv True inv name t _ = do
         CoupInvariant -> "coupInv-"
         Invariant     -> "inv-"
         RepInvariant  -> "repInv-")
-    selfParam    = Parameter (ptr t) (Name "_self") []
+    selfParam    = Parameter (ptr t) (Name "__self") []
     precondParam = Parameter boolType (Name "cond") []
 
   addDefinitions $ [defineFunction procName [selfParam, precondParam] voidType]
@@ -691,7 +691,7 @@ defineStructInv _ inv name t expr@ Expression {loc = Location(pos,_)} = do
   (proc #)
 
   openScope
-  name' <- insertVar "_self"
+  name' <- insertVar "__self"
   -- Evaluate the condition expression
   condInv <- expression' expr
   -- Create both label

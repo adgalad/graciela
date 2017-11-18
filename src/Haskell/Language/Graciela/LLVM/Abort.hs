@@ -36,7 +36,7 @@ import           LLVM.General.AST.Type              (Type (VoidType))
 
 abortString :: String
 -- | Graciela-lib for the abort function name.
-abortString = "_abort"
+abortString = "___abort"
 --------------------------------------------------------------------------------
 
 -- | Used to build the args for an abort or a warning.
