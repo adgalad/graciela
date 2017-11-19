@@ -144,7 +144,7 @@ runParserT p fp s input = runStateT (runReaderT flatten cfg) s
           defaultConfig eT mO nA
 
       flatten = do
-        
+         
         definitions <~ do 
           f <- asks nativeFunctions
           p <- asks nativeProcedures

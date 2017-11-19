@@ -174,29 +174,38 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
         cs <- use currentStruct
         pName <- case cs of
           Nothing -> do
-            pure $ unpack defName
-
+            pure . ('$':) $ unpack defName
           Just Struct{ structBaseName, structTypes, struct' = DataType{abstract} } -> do
             abstractStruct <- (Map.lookup abstract) <$> use structs
             t' <- mapM fill structTypes
             let postFix = llvmName ("-" <> structBaseName) t'
-            pure $ unpack defName <> postFix
+            pure . ('$':) $ unpack defName <> postFix
 
         case def' of
           FunctionDef { funcRetType, funcParams, funcRecursive  } -> do
               
             params  <- mapM (makeParam' isDecl) . toList $ funcParams
             retType <- toLLVMType funcRetType
-            params' <- if isJust bound 
-              then recursiveParams (funcRecursive && asserts) -- recursion is verified if the assertions are enabled
-              else pure []
+            
+            let 
+              hasOldBound = Name $ "." <> unpack defName <> "HasOldBound"
+              oldBound    = Name $ "." <> unpack defName <> "OldBound"
+
+              params' = if isJust bound && (funcRecursive && asserts)
+                then [Parameter boolType hasOldBound [], Parameter intType oldBound []]
+                else []
             addDefinitions  [defineFunction pName (params' <> params) retType]
 
           ProcedureDef { procParams, procRecursive } -> do
             params  <- mapM (makeParam isDecl) . toList $ procParams
-            params' <- if isJust bound 
-              then recursiveParams (procRecursive && asserts) -- recursion is verified if the assertions are enabled
-              else pure []
+            
+            let
+              hasOldBound = Name $ "." <> unpack defName <> "HasOldBound"
+              oldBound    = Name $ "." <> unpack defName <> "OldBound"
+
+              params' = if isJust bound && (procRecursive && asserts)
+                then [Parameter boolType hasOldBound [], Parameter intType oldBound []]
+                else []
 
             addDefinitions  [defineFunction pName (params' <> params) voidType]
 
@@ -304,7 +313,7 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
           { returnOperand = Just returnOperand
           , metadata' = [] }
 
-        let name = Name $ unpack defName <> postFix
+        let name = Name . ('$':) $ unpack defName <> postFix
         blocks' <- use blocks
         blocks .= Seq.empty
 
@@ -385,7 +394,7 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
           Nothing -> do
             body Nothing
 
-            pure $ unpack defName
+            pure . ('$':) $ unpack defName
 
           Just Struct{ structBaseName, structTypes, struct' = DataType{abstract} } -> do
             abstractStruct <- (Map.lookup abstract) <$> use structs
@@ -393,7 +402,7 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
             let postFix = llvmName ("-" <> structBaseName) t'
 
             body abstractStruct
-            pure $ unpack defName <> postFix
+            pure . ('$':) $ unpack defName <> postFix
 
         when asserts $ do
           postcondition (fromJust cond) post
@@ -502,7 +511,7 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
               , alignment = 4
               , metadata  = [] }
 
-          pure $ Parameter (traceShowId t') pTemp []
+          pure $ Parameter t' pTemp []
         else 
           pure $ Parameter (ptr t') name' []
 

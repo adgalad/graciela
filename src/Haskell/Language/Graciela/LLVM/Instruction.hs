@@ -262,9 +262,9 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
     pName' <- case pStructArgs of
       Just (structBaseName, typeArgs) -> do
         t' <- mapM fill (toList typeArgs)
-        pure $ llvmName (pName <> pack "-" <> structBaseName) t'
+        pure . ('$':) $ llvmName (pName <> pack "-" <> structBaseName) t'
 
-      _ -> pure . unpack $ pName
+      _ -> pure . ('$':) . unpack $ pName
     asserts <- use evalAssertions
     recArgs <- fmap (,[]) <$> if pRecursiveCall && asserts 
         then do

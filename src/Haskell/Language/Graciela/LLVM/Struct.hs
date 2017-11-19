@@ -85,7 +85,6 @@ defineStruct structBaseName (ast, typeMaps) = case ast of
           structType = LLVM.NamedTypeReference (Name name)
 
         moduleDefs %= (|> TypeDefinition (Name name) type')
-        traceM $ "\t"<> name <> if fromOtherModule then " (from Other module)" else ""
 
         currentStruct .= Nothing
         coupling .= True
@@ -291,14 +290,14 @@ defaultConstructor _ name structType typeMap = do
 
         let
           funStr = case t of
-            GSet GTuple{}      -> "___newSetPair"
-            GSet _             -> "___newSet"
-            GMultiset GTuple{} -> "___newMultisetPair"
-            GMultiset _        -> "___newMultiset"
-            GSeq GTuple{}      -> "___newSequencePair"
-            GSeq _             -> "___newSequence"
-            GFunc _ _          -> "___newFunction"
-            GRel _ _           -> "___newRelation"
+            GSet GTuple{}      -> "_newSetPair"
+            GSet _             -> "_newSet"
+            GMultiset GTuple{} -> "_newMultisetPair"
+            GMultiset _        -> "_newMultiset"
+            GSeq GTuple{}      -> "_newSequencePair"
+            GSeq _             -> "_newSequence"
+            GFunc _ _          -> "_newFunction"
+            GRel _ _           -> "_newRelation"
 
         addInstruction $ newCollection := Call
           { tailCallKind       = Nothing

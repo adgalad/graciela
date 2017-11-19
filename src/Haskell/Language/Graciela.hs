@@ -34,7 +34,6 @@ import           Data.Foldable                    (toList)
 import           Data.List                        (nub, intercalate)
 import           Data.Map.Strict                  (showTree)
 import qualified  Data.Map.Strict                  as Map (toList)
-import           Data.Maybe                       (fromMaybe)
 
 import qualified Data.Sequence                    as Seq (null)
 import           Data.Set                         (empty)

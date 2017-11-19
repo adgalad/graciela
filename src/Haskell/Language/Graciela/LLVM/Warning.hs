@@ -11,7 +11,7 @@ import           Language.Graciela.Location   (SourcePos)
 
 -- | Graciela-lib for the warn function name.
 warnString :: String
-warnString = "___warn"
+warnString = "_warn"
 --------------------------------------------------------------------------------
 
 -- | Enum type for the different warning conditions.

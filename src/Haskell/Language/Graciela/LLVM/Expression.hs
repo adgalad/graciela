@@ -1072,9 +1072,9 @@ expression e@Expression { E.loc = (Location(pos,_)), expType, exp'} = do
         Just (structBaseName, typeArgs) -> do
 
           t' <- mapM fill (toList typeArgs)
-          pure $ llvmName (fName <> "-" <> structBaseName) t'
+          pure . ('$':) $ llvmName (fName <> "-" <> structBaseName) t'
 
-        _ -> pure . unpack $ fName
+        _ -> pure . ('$':) . unpack $ fName
 
       asserts <- use evalAssertions
       recArgs <- fmap (,[]) <$> if fRecursiveCall && asserts
@@ -1082,7 +1082,7 @@ expression e@Expression { E.loc = (Location(pos,_)), expType, exp'} = do
           use boundOp >>= pure . \case 
             Nothing -> []
             Just boundOperand -> [constantOperand GBool . Left $ 1, boundOperand]
-        else if (traceShowId fRecursiveFunc) && asserts
+        else if fRecursiveFunc && asserts
           then pure $ [constantOperand GBool . Left $ 0, constantOperand GInt . Left $0]
           else pure []
       label <- newLabel "funcResult"

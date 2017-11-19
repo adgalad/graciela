@@ -1232,7 +1232,7 @@ call = do
               currentFunction <- lift (use currentFunc)
               case currentFunction of
                 Just cr@CurrentRoutine { _crTypeArgs }
-                  | cr^.crName == fName && cr^.crRecAllowed -> do
+                  | cr^.crName == fName  -> do
                     let
                       nArgs = length args
                       nParams = length (cr^.crParams)
@@ -1256,8 +1256,8 @@ call = do
                                 , exp' = FunctionCall
                                   { fName
                                   , fArgs
-                                  , fRecursiveCall = True
-                                  , fRecursiveFunc = True
+                                  , fRecursiveCall = cr^.crRecAllowed
+                                  , fRecursiveFunc = cr^.crRecAllowed
                                   , fStructArgs    = _crTypeArgs}}
                             in Just (expr, ProtoNothing, taint)
                       else do
@@ -1267,11 +1267,12 @@ call = do
                           , nParams
                           , nArgs }
                         pure Nothing
-                  | cr^.crName == fName && not (cr^.crRecAllowed) -> do
-                    putError from . UnknownError $
-                      "Function `" <> unpack fName <> "` cannot call itself \
-                      \recursively because no bound was given for it."
-                    pure Nothing
+
+                  -- | cr^.crName == fName && not (cr^.crRecAllowed) -> do
+                  --   putError from . UnknownError $
+                  --     "Function `" <> unpack fName <> "` cannot call itself \
+                  --     \recursively because no bound was given for it."
+                  --   pure Nothing
                   | otherwise -> dataTypeFunction args fName loc from
 
                 Nothing -> dataTypeFunction args fName loc from

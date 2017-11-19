@@ -8,7 +8,7 @@ module Language.Graciela.Common
   , internal
   , issueMsg
   , toList
-  , isNothing, isJust
+  , isNothing, isJust, fromMaybe, fromJust
   , pack, unpack
   , foldM, forM, forM_, unless, void, when, zipWithM, zipWithM_, (>=>)
   , lift
@@ -31,7 +31,7 @@ import           Data.Foldable              (toList)
 import           Data.Functor               (($>))
 import           Data.Int                   (Int32)
 import           Data.Map.Strict            (Map)
-import           Data.Maybe                 (isJust, isNothing)
+import           Data.Maybe                 (isJust, isNothing, fromMaybe, fromJust)
 import           Data.Semigroup             (Semigroup (..))
 import           Data.Sequence              (Seq)
 import           Data.Set                   (Set)

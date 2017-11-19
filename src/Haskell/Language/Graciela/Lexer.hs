@@ -29,7 +29,7 @@ import qualified Data.Set                 as Set (empty)
 import           Prelude                  hiding (lex)
 import           Text.Megaparsec          (Dec, ParsecT, alphaNumChar, anyChar,
                                            between, char, eof, getPosition,
-                                           letterChar, many, manyTill,
+                                           letterChar, many, some, manyTill,
                                            notFollowedBy, oneOf, runParserT,
                                            spaceChar, string, try, (<|>))
 import qualified Text.Megaparsec.Lexer    as L
@@ -139,8 +139,11 @@ stringLit = lexeme $
 
 
 identifier :: Lexer TokenPos
-identifier = lexeme $
-  TokId . pack <$> ((:) <$> letterChar <*> many (alphaNumChar <|> oneOf ("_?'" :: String)))
+identifier = try $ do 
+  l <- some letterChar <|> (some (oneOf ("_" :: String)) >>= \x -> (x<>) <$> some alphaNumChar)
+  r <- many (alphaNumChar <|> oneOf ("_?'" :: String))
+
+  lexeme . pure . TokId . pack $ (l <> r)
 
 unexpected :: Lexer TokenPos
 unexpected = lexeme $ TokUnexpected <$> anyChar

@@ -66,14 +66,14 @@ abstractDataType :: Parser ()
 abstractDataType = do
   from <- getPosition
   match TokAbstract
-  abstractName' <- safeIdentifier
+  abstractName <- fromMaybe "" <$> safeIdentifier
   atypes <- do
       t <- optional . parens $ (typeVarDeclaration `sepBy` match TokComma)
       case t of
         Just s -> pure $ toList s
         _      -> pure []
 
-  if isNothing abstractName'
+  if abstractName == ""
   then
     void $ anyToken `manyTill` (void (match TokEnd) <|> eof)
   else do
@@ -81,7 +81,6 @@ abstractDataType = do
     let
       typeArgs = Array.listArray (0, length atypes - 1) atypes
       abstractType = GDataType abstractName Nothing typeArgs
-      Just abstractName = abstractName'
     
     dts <- use dataTypes
     case Map.lookup abstractName dts of 
@@ -148,7 +147,7 @@ dataType = do
 
   match TokType
   namePos <- getPosition
-  name' <- safeIdentifier
+  name <- fromMaybe "" <$> safeIdentifier
   types <- do
       t <- optional . parens $ typeVarDeclaration `sepBy` match TokComma
       case t of
@@ -156,7 +155,7 @@ dataType = do
         _      -> pure []
 
   match' TokImplements
-  abstractName' <- safeIdentifier
+  abstractName <- fromMaybe "" <$> safeIdentifier
   absTypesPos <- getPosition
   absTypes <- do
       t <- optional . parens $ (typeVar <|> basicOrPointer) `sepBy` match TokComma
@@ -164,14 +163,10 @@ dataType = do
         Just s -> pure $ toList s
         _      -> pure []
 
-  if isNothing name' || isNothing abstractName'
+  if name == "" || abstractName == ""
     then
       void $ anyToken `manyTill` (void (match TokEnd) <|>  eof)
     else do
-      let
-        Just name         = name'
-        Just abstractName = abstractName'
-
       dts <- use dataTypes
       case Map.lookup name dts of 
         Just s@Struct {structLoc = l@(Location (prevDef, _))} -> 
@@ -194,7 +189,7 @@ dataType = do
           symbolTable %= openScope from
 
           let
-            dtType        = GDataType name abstractName' typeArgs
+            dtType        = GDataType name (Just abstractName) typeArgs
             adtType       = GDataType abstractName Nothing (Array.listArray (0, lenNeeded - 1) structTypes)
             typeArgs      = Array.listArray (0, length types - 1) types
 

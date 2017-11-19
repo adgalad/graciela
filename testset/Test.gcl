@@ -1,0 +1,13 @@
+#!/usr/bin/env rungraciela
+
+include "Grafo/Grafo"
+
+program Test.bin begin
+
+
+
+main
+	|[ test_Grafo()
+
+	]|
+end

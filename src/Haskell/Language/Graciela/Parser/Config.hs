@@ -498,81 +498,81 @@ defaultConfig enableTrace enableLowLevel noAssertions = Config
 
 
 randCharString, randIntString, randFloatString, randBoolString :: String
-randCharString  = "___randChar"
-randIntString   = "___randInt"
-randFloatString = "___randFloat"
-randBoolString  = "___randBool"
+randCharString  = "_randChar"
+randIntString   = "_randInt"
+randFloatString = "_randFloat"
+randBoolString  = "_randBool"
 
 sqrtIString, sqrtFString :: String
-sqrtIString = "___sqrt_i"
-sqrtFString = "___sqrt_f"
+sqrtIString = "_sqrt_i"
+sqrtFString = "_sqrt_f"
 
 absIString, absFString :: String
-absIString = "___abs_i"
-absFString = "___abs_f"
+absIString = "_abs_i"
+absFString = "_abs_f"
 
 isNanString, isInfString :: String
-isNanString = "___isNan"
-isInfString = "___isInf"
+isNanString = "_isNan"
+isInfString = "_isInf"
 
 toSetMultiString, toSetSeqString, toSetFuncString, toSetRelString :: String
-toSetMultiString = "___multiset_to_set"
-toSetSeqString = "___seq_to_set"
-toSetFuncString = "___func_to_set"
-toSetRelString = "___rel_to_set"
+toSetMultiString = "_multiset_to_set"
+toSetSeqString = "_seq_to_set"
+toSetFuncString = "_func_to_set"
+toSetRelString = "_rel_to_set"
 
 toMultiSetString, toMultiSeqString :: String
-toMultiSetString = "___set_to_multiset"
-toMultiSeqString = "___seq_to_multiset"
+toMultiSetString = "_set_to_multiset"
+toMultiSeqString = "_seq_to_multiset"
 
 toSeqSetString, toSeqMultiString :: String
-toSeqSetString = "___set_to_seq"
-toSeqMultiString = "___multiset_to_seq"
+toSeqSetString = "_set_to_seq"
+toSeqMultiString = "_multiset_to_seq"
 
 funcString, relString :: String
-funcString = "___funcFromSet"
-relString = "___relationFromSet"
+funcString = "_funcFromSet"
+relString = "_relationFromSet"
 
 domainFuncString, domainRelString, codomainFuncString, codomainRelString :: String
-domainFuncString   = "___domFunction"
-domainRelString    = "___domRelation"
-codomainFuncString = "___codomainFunction"
-codomainRelString  = "___codomainRelation"
+domainFuncString   = "_domFunction"
+domainRelString    = "_domRelation"
+codomainFuncString = "_codomainFunction"
+codomainRelString  = "_codomainRelation"
 
 inverseFuncString, inverseRelString :: String
-inverseFuncString = "___inverse_func"
-inverseRelString = "___inverse_rel"
+inverseFuncString = "_inverse_func"
+inverseRelString = "_inverse_rel"
 
 multiplicityMultiString, multiplicitySeqString :: String
-multiplicityMultiString = "___countMultiset"
-multiplicitySeqString   = "___countSeq"
+multiplicityMultiString = "_countMultiset"
+multiplicitySeqString   = "_countSeq"
 
 multiplicitySeqPairString, multiplicityMultiPairString :: String
-multiplicitySeqPairString   = "___countSequencePair"
-multiplicityMultiPairString = "___countMultisetPair"
+multiplicitySeqPairString   = "_countSequencePair"
+multiplicityMultiPairString = "_countMultisetPair"
 
 float2intString, char2intString   :: String
-float2intString   = "___float2int"
-char2intString    = "___char2int"
-pointer2intString = "___pointer2int"
+float2intString   = "_float2int"
+char2intString    = "_char2int"
+pointer2intString = "_pointer2int"
 float2charString, int2charString  :: String
-float2charString  = "___float2char"
-int2charString    = "___int2char"
+float2charString  = "_float2char"
+int2charString    = "_int2char"
 char2floatString, int2floatString :: String
-char2floatString  = "___char2float"
-int2floatString   = "___int2float"
+char2floatString  = "_char2float"
+int2floatString   = "_int2float"
 
 readlnString :: String
-readlnString = "___readln"
+readlnString = "_readln"
 
 traceIntString, traceFloatString, traceCharString, traceBoolString, traceTypeVarString, traceStringIntString, traceStringFloatString, traceStringCharString, traceStringBoolString, traceStringTypeVarString :: String
-traceIntString           = "___traceInt"
-traceFloatString         = "___traceFloat"
-traceCharString          = "___traceChar"
-traceBoolString          = "___traceBool"
-traceTypeVarString       = "___traceTypeVar"
-traceStringIntString     = "___traceStringInt"
-traceStringFloatString   = "___traceStringFloat"
-traceStringCharString    = "___traceStringChar"
-traceStringBoolString    = "___traceStringBool"
-traceStringTypeVarString = "___traceStringTypeVar"
+traceIntString           = "_traceInt"
+traceFloatString         = "_traceFloat"
+traceCharString          = "_traceChar"
+traceBoolString          = "_traceBool"
+traceTypeVarString       = "_traceTypeVar"
+traceStringIntString     = "_traceStringInt"
+traceStringFloatString   = "_traceStringFloat"
+traceStringCharString    = "_traceStringChar"
+traceStringBoolString    = "_traceStringBool"
+traceStringTypeVarString = "_traceStringTypeVar"

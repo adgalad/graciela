@@ -2,12 +2,12 @@
 
 /*% LANGUAGE EnableTrace %*/
 
-program Graph.bin begin
+module Graph.bin begin
 
 abstract ANode(T)
 begin
   /* ANode variables */
-  const MAX := 11 : int;
+  const MAX := 12 : int;
   var nodeSeq : set of (ANode(T)*);
 
   {repinv #nodeSeq <= MAX repinv}
@@ -38,8 +38,6 @@ begin
   /* Node procedures */
   proc create (ref n : Node(T), in value : T, in id : int)
     var i := 0 : int;
-    {pre true pre}
-    {post true post}
     |[ n.value := value
      ; n.id    := id
      ; n.tam   := 0
@@ -77,8 +75,6 @@ begin
 
   proc path(in n : Node(T), in x : int, out b : boolean, in bo : int)
     var i   := 0 : int;
-    {pre true pre}
-    {post true post}
     {bound bo bound}
     |[ if n.id == x -> b := true
        [] otherwise -> {inv true inv}
@@ -97,33 +93,28 @@ begin
 end
 
 
-proc test (in x : int*, inout y : int*, out z : int*)
-
-  {pre true pre}
-  {post true post}
+proc test1_Grafo (in x : int*, inout y : int*, out z : int*)
   |[ if x == null -> writeln("correcto") [] x != null -> writeln("MAL") fi
    ; if y == null -> writeln("correcto") [] y != null -> writeln("MAL") fi
    ; if z == null -> writeln("correcto") [] z != null -> writeln("MAL") fi
 
   ]|
 
-// proc test2 (in x : Node(int)*, inout y : Node(int)*, out z : Node(int)*)
-//   {pre x == null /\ y == null /\ z == null  pre}
-//   {post true post}
-//   |[ if x == null -> writeln("correcto") [] x != null -> writeln("MAL") fi
-//    ; if y == null -> writeln("correcto") [] y != null -> writeln("MAL") fi
-//    ; if z == null -> writeln("correcto") [] z != null -> writeln("MAL") fi
-//   ]|
+proc test2_Grafo (in x : Node(int)*, inout y : Node(int)*, out z : Node(int)*)
+  {pre x == null /\ y == null /\ z == null  pre}
+  |[ if x == null -> writeln("correcto") [] x != null -> writeln("MAL") fi
+   ; if y == null -> writeln("correcto") [] y != null -> writeln("MAL") fi
+   ; if z == null -> writeln("correcto") [] z != null -> writeln("MAL") fi
+  ]|
 
-// proc test3 (in x : Node(int)*, out z : Node(int)*, inout y : Node(int)*)
-//   {pre  x != null /\ y != null /\ z == null   pre}
-//   {post true post}
-//   |[ if x != null -> writeln("correcto") [] x == null -> writeln("MAL") fi
-//    ; if y != null -> writeln("correcto") [] y == null -> writeln("MAL") fi
-//    ; if z == null -> writeln("correcto") [] z != null -> writeln("MAL") fi
-//   ]|
+proc test3_Grafo (in x : Node(int)*, out z : Node(int)*, inout y : Node(int)*)
+  {pre  x != null /\ y != null /\ z == null   pre}
+  |[ if x != null -> writeln("correcto") [] x == null -> writeln("MAL") fi
+   ; if y != null -> writeln("correcto") [] y == null -> writeln("MAL") fi
+   ; if z == null -> writeln("correcto") [] z != null -> writeln("MAL") fi
+  ]|
 
-// proc test4 (in x : Node(int)*, out z : Node(int)*, inout y : Node(int)*)
+// proc test4_Grafo (in x : Node(int)*, out z : Node(int)*, inout y : Node(int)*)
 //   {pre  x != null /\ y != null /\ z == null /\
 //         (*x).next == null /\ (*y).next == null   
 //   pre}
@@ -136,8 +127,24 @@ proc test (in x : int*, inout y : int*, out z : int*)
 //    ; if (*y).id > -1 -> writeln((*y).id, "√") [] y == null -> writeln("MAL") fi
 //   ]|
 
-main
-  |[ var n : array[11] of Node(int)*
+func f (x : int) -> int 
+  {bound 10-x bound}
+  |[
+    if x < 10 -> f(x+1)+1
+    [] otherwise -> 1
+    fi
+  ]|
+
+proc g (in x : int)
+  {bound 10-x bound}
+  |[
+    if x < 10 -> g(x+1) 
+    [] otherwise -> skip
+    fi
+  ]|
+
+proc test_Grafo ( )
+  |[ var n : array[12] of Node(int)*
    ; var bool : boolean
    ; var x := 10 : int
    ; var i := 0 : int
@@ -148,6 +155,7 @@ main
        ; create(*n[i], 1, i) 
        ; i := i + 1
      od
+   ; n[11] := null
    ; insert(*n[1],n[7])
    ; insert(*n[1],n[2])
    ; insert(*n[1],n[5])//          _ 1
@@ -163,6 +171,13 @@ main
    ; path(*n[1],3, bool, 11)
    ; writeln("----")
    ; path(*n[5], 10, bool, 11)
+   ; |[ var ptr : int*
+      ; test1_Grafo (ptr, ptr, ptr)
+
+      ; test2_Grafo (n[11],n[11],n[11])
+      ; test3_Grafo (n[1],n[1],n[1])
+      // ; test4_Grafo (n[1],n[1],n[1])
+     ]| 
    ; i := 0
    ; {inv true inv}
      {bound 11 - i bound}
@@ -170,5 +185,9 @@ main
       -> free(n[i])
        ; i := i + 1
      od
+   ; g(1)
+   ; writeln(f(1)) 
+
   ]|
+
 end

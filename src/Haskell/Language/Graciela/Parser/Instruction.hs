@@ -525,7 +525,7 @@ procedureCall' = do
 
   defs <- use definitions
   let nArgs   = length args
-
+  
   case procName `Map.lookup` defs of
     Just Definition { defLoc, def' = GracielaProc { pSignatures }} -> do
       let args' = sequence args
@@ -577,7 +577,7 @@ procedureCall' = do
       pure Nothing
 
     Nothing -> do
-      -- Function `p` will be used only if the procedure we are looking for is not
+      -- Function `f` will be used only if the procedure we are looking for is not
       -- the current procedure and is not defined yet. 
       -- In that case, it should be a Data Type procedure (or an error, of course).
       -- There are two cases: 1) It's being called outside a Data Type.
@@ -717,7 +717,7 @@ procedureCall' = do
       currentProcedure <- use currentProc
       case currentProcedure of
         Just cr@CurrentRoutine { _crTypeArgs}
-          | cr^.crName == procName && cr^.crRecAllowed -> do
+          | cr^.crName == procName -> do
             let
               nParams = length (cr^.crParams)
             if nArgs == nParams
@@ -733,8 +733,8 @@ procedureCall' = do
                     , inst' = ProcedureCall
                       { pName = procName
                       , pArgs
-                      , pRecursiveCall = True
-                      , pRecursiveProc = True
+                      , pRecursiveCall = cr^.crRecAllowed
+                      , pRecursiveProc = cr^.crRecAllowed
                       , pStructArgs    = _crTypeArgs }}
               else do
                 putError from BadProcNumberOfArgs
@@ -743,11 +743,11 @@ procedureCall' = do
                   , nParams
                   , nArgs }
                 pure Nothing
-          | cr^.crName == procName && not (cr^.crRecAllowed) -> do
-            putError from . UnknownError $
-              "Procedure `" <> unpack procName <> "` cannot call itself \
-              \recursively because no bound was given for it."
-            pure Nothing
+          -- | cr^.crName == procName && not (cr^.crRecAllowed) -> do
+          --   putError from . UnknownError $
+          --     "Procedure `" <> unpack procName <> "` cannot call itself \
+          --     \recursively because no bound was given for it."
+          --   pure Nothing
 
           | otherwise -> f
 

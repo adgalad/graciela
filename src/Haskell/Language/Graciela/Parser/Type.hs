@@ -24,11 +24,9 @@ import           Language.Graciela.Location
 import           Language.Graciela.Parser.Expression (expression)
 import           Language.Graciela.Parser.Monad      (Parser, followedBy,
                                                       getStruct, getType,
-                                                      identifier,
-                                                      identifierAndLoc,
                                                       integerLit, match, match',
                                                       oneOf, parens, putError,
-                                                      sepBy)
+                                                      sepBy, identifier)
 import           Language.Graciela.Parser.State
 import           Language.Graciela.SymbolTable       (insertSymbol, local,
                                                       lookup)
@@ -151,10 +149,10 @@ type' =  try parenType
                 "A non-positive dimension was given in the array declaration."
               pure Nothing
             _ -> pure . Just $ e
-          -- t -> do
-          --   putError pos . UnknownError $
-          --     "Array dimension must be an integer constant expression."
-          --   pure Nothing
+          t -> do
+            putError pos . UnknownError $
+              "Array dimension must be an integer constant expression."
+            pure Nothing
     basicOrPtr = do
       -- If its not an array, then try with a basic type or a pointer
       from  <- getPosition
@@ -373,3 +371,4 @@ typeVar = do
           "To use a variable of type " <> show (GTypeVar i tname) <>
           "\n\tone of the method's parameter must be of type " <> show dt
         pure $ GTypeVar i tname
+

@@ -81,7 +81,6 @@ programToLLVM files
       -- and the main program, that will be a function called main... of course.
       -- TODO add also all types and abstract types as Definition's `TypeDefinition`
       program = do
-        traceM $ unpack name <> " -------------"
         S.structs .= structs
         fullDataTypes .= fullStructs
         stringIds .= strings
@@ -118,7 +117,6 @@ moduleToLLVM
     }
   where 
     gModule = do
-      traceM $ unpack name <> " -------------"
       S.structs .= structs
       fullDataTypes .= fullStructs
       stringIds .= strings

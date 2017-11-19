@@ -83,7 +83,7 @@ function = do
   symbolTable %= openScope from
 
   idFrom <- getPosition
-  funcName' <- safeIdentifier
+  funcName <- fromMaybe "No ID"  <$> safeIdentifier
   idTo <- getPosition
 
   symbolTable %= openScope from
@@ -95,8 +95,8 @@ function = do
   funcRetType <- if logicAW then abstractType else type'
 
   dt <- use currentStruct
-  goToDT <- case (dt, funcParams', funcName') of
-    (Just (dtType, _, procs, _, _), Just params, Just funcName) -> do
+  goToDT <- case (dt, funcParams') of
+    (Just (dtType, _, procs, _, _), Just params) -> do
       let
         aux = (\case; Just t -> t =:= dtType; _ -> False)
         hasTV  = any (hasTypeVar  . snd) params
@@ -121,23 +121,20 @@ function = do
   postFrom <- getPosition
 
   symbolTable %= openScope postFrom
-  case funcName' of
-    Nothing -> pure ()
-    Just funcName -> do
-      symbolTable %= insertSymbol funcName Entry
-        { _entryName = funcName
-        , _loc       = Location (idFrom, idTo)
-        , _info      = Var
-          { _varType  = funcRetType
-          , _varValue = Nothing
-          , _varConst = False }}
+  symbolTable %= insertSymbol funcName Entry
+    { _entryName = funcName
+    , _loc       = Location (idFrom, idTo)
+    , _info      = Var
+      { _varType  = funcRetType
+      , _varValue = Nothing
+      , _varConst = False }}
 
   post'  <- skipAssertions postFrom <$> (optional postcond)
   postTo <- getPosition
 
   symbolTable %= closeScope postTo
 
-  bnd     <- join <$> optional A.bound
+  bnd  <- join <$> optional A.bound
 
   let
     callTypeArgs = if goToDT
@@ -145,14 +142,14 @@ function = do
         let Just (dtType,_,_,_,_) = dt
         in Just (typeName dtType, dtTypeArgs dtType)
       else Nothing
-  currentFunc .= case (funcName', funcParams') of
-    (Just funcName, Just params) -> Just CurrentRoutine
+  currentFunc .= case funcParams' of
+    Just params -> Just CurrentRoutine
       { _crName       = funcName
       , _crPos        = from
       , _crParams     = params
       , _crType       = funcRetType
       , _crTypeArgs   = callTypeArgs
-      , _crRecAllowed = True --isJust bnd
+      , _crRecAllowed = isJust bnd
       , _crRecursive  = False  }
     _ -> Nothing
 
@@ -169,8 +166,8 @@ function = do
   symbolTable %= closeScope postTo
   let loc = Location (from, to)
 
-  case (funcName', funcParams', pre', post', funcBody', decls') of
-    (Just funcName, Just funcParams, Just pre, Just post, Just funcBody, Just funcDecls) ->
+  case (funcParams', pre', post', funcBody', decls') of
+    (Just funcParams, Just pre, Just post, Just funcBody, Just funcDecls) ->
       if funcRetType =:= expType funcBody
 
         then do
@@ -329,7 +326,7 @@ procedure = do
       , _crParams     = params
       , _crType       = ()
       , _crTypeArgs   = callTypeArgs
-      , _crRecAllowed = True
+      , _crRecAllowed = isJust bnd
       , _crRecursive  = False  }
     _ -> Nothing
 

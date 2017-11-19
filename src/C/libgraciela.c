@@ -22,7 +22,7 @@
 
 #define MAX_LINE 2048
 
-int8_t* ___openFile(char* name) {
+int8_t* _openFile(char* name) {
   FILE* file;
 
   file = fopen(name, "r");
@@ -34,33 +34,33 @@ int8_t* ___openFile(char* name) {
   return (int8_t *) file;
 }
 
-void ___closeFile(int8_t* file) {
+void _closeFile(int8_t* file) {
   FILE* f = (FILE*) file;
   fclose(f);
 }
 
-int8_t* ___malloc(int size){  
+int8_t* _malloc(int size){  
   int8_t* p = calloc(1,size);
   if (!p) {
     printf("\x1B[0;31mError:\x1B[m Out of memory.");
     exit(EXIT_FAILURE);
   }
   // Mark and add p to the Dynamic Memory Verification (DMV) set
-  ___addPointer(p);
+  _addPointer(p);
   return p;
 
 }
 
-int ___isNan(double x){ return isnan(x); }
-int ___isInf(double x){ return isinf(x); }
+int _isNan(double x){ return isnan(x); }
+int _isInf(double x){ return isinf(x); }
 
-void ___free(int8_t *mem, char *filePath, int l, int c){
+void _free(int8_t *mem, char *filePath, int l, int c){
   // Before a piece of memory can be freed, it has to be removed from the DMV set
-  ___removePointer(mem, filePath, l ,c);
+  _removePointer(mem, filePath, l ,c);
   free(mem);
 }
 
-int ___readFileInt(int8_t* file) {
+int _readFileInt(int8_t* file) {
 
   FILE* f = (FILE*) file;
 
@@ -82,7 +82,7 @@ int ___readFileInt(int8_t* file) {
 
 }
 
-int ___readFileBool(int8_t* file) {
+int _readFileBool(int8_t* file) {
   FILE* f = (FILE*) file;
 
   char str[64];
@@ -116,7 +116,7 @@ int ___readFileBool(int8_t* file) {
 
 }
 
-char ___readFileChar(int8_t* file) {
+char _readFileChar(int8_t* file) {
   FILE* f = (FILE*) file;
   char n;
   int r = fscanf(f, "%c", &n);
@@ -124,7 +124,7 @@ char ___readFileChar(int8_t* file) {
   return n;
 }
 
-double ___readFileDouble(int8_t* file) {
+double _readFileDouble(int8_t* file) {
   FILE* f = (FILE*) file;
   char str[64];
   int r = fscanf(f, "%s", str);
@@ -165,7 +165,7 @@ double ___readFileDouble(int8_t* file) {
   return (double)atof(str);
 }
 
-void ___lineFeed(){
+void _lineFeed(){
   char end = (char)getchar();
   if ( end != '\n' && end != '\0'){
     // ASCII 10 "Line Feed"
@@ -173,11 +173,11 @@ void ___lineFeed(){
   }
 }
 
-int ___readIntStd () {
+int _readIntStd () {
   
   char str[64];
   scanf("%s", str);
-  ___lineFeed();
+  _lineFeed();
 
   int s = 0;
   if (str[0] == '-') ++s;
@@ -190,10 +190,10 @@ int ___readIntStd () {
   return (int)strtol(str,NULL,10);
 }
 
-int ___readBoolStd () {
+int _readBoolStd () {
   char str[64];
   scanf("%s", str);
-  ___lineFeed();
+  _lineFeed();
   if (!strcmp(str,"1")){
     return 1;
   } else if (!strcmp(str,"0")){
@@ -210,24 +210,24 @@ int ___readBoolStd () {
   }
 }
 
-char ___readCharStd () {
+char _readCharStd () {
   char n   = (char)getchar();
   
   if (n == '\0' || n == '\n'){
     return n;
   }
   
-  ___lineFeed();
+  _lineFeed();
   return n;
 }
 
 
 
 
-double ___readDoubleStd () {
+double _readDoubleStd () {
   char str[64];
   scanf("%s", str);
-  ___lineFeed();
+  _lineFeed();
   int s = 0;
   int dot = 0;
   int e = 0;
@@ -258,17 +258,17 @@ double ___readDoubleStd () {
   return (double)atof(str);
 }
 
-void ___writeInt(int x) {
+void _writeInt(int x) {
   printf("%d", x);
 }
 
 
-void ___writeDouble(double x) {
+void _writeDouble(double x) {
   printf("%f", x);
 }
 
 
-void ___writeBool(int x) {
+void _writeBool(int x) {
   if (x == 0)
     printf("false");
   else
@@ -276,18 +276,18 @@ void ___writeBool(int x) {
 }
 
 
-void ___writeChar(int x) {
+void _writeChar(int x) {
   setlocale(LC_CTYPE, "");
 
   printf("%lc", x);
 }
 
-void ___writePointer(int8_t* x) {
+void _writePointer(int8_t* x) {
 
   printf("%p", x);
 }
 
-void ___writeString(char *x) {
+void _writeString(char *x) {
   int i=0;
   setlocale(LC_CTYPE, "");
 
@@ -295,27 +295,27 @@ void ___writeString(char *x) {
 }
 
 
-void ___ln() {
+void _ln() {
   printf("\n");
 }
 
 
-void ___randInt(int8_t *x) {
+void _randInt(int8_t *x) {
   int *i = (int*)x;
   *i = rand();
 }
 
-void ___randFloat(int8_t *x){
+void _randFloat(int8_t *x){
   double *f = (double*)x;
   *f = rand()/(double)(RAND_MAX);
 }
 
-void ___randChar(int8_t *x){
+void _randChar(int8_t *x){
   char c = (rand() % (CHAR_MAX - CHAR_MIN)) + CHAR_MIN;
   *x = c;
 }
 
-void ___randBool(int8_t *x){
+void _randBool(int8_t *x){
   uint8_t b;
   b = rand()%2;
   b = b < 0 ? (-b) : b;
@@ -323,26 +323,26 @@ void ___randBool(int8_t *x){
 }
 
 
-int ___max(int x, int y) {
+int _max(int x, int y) {
   return x > y ? x : y;
 }
 
 
-double ___maxF(double x, double y) {
+double _maxF(double x, double y) {
   return x > y ? x : y;
 }
 
 
-int ___min(int x, int y) {
+int _min(int x, int y) {
   return x < y ? x : y;
 }
 
 
-double ___minF(double x, double y) {
+double _minF(double x, double y) {
   return x < y ? x : y;
 }
 
-void ___copyArray(int size, int8_t* source, int8_t* dest, int sizeT){
+void _copyArray(int size, int8_t* source, int8_t* dest, int sizeT){
   for (int i = 0; i < size*sizeT; ++i)
     *(dest + i) = *(source + i);
 }
@@ -371,7 +371,7 @@ typedef enum
   , A_ABSTRACT_POST
   } abort_t;
 
-void ___abort (abort_t reason, char *filePath, int line, int column) {
+void _abort (abort_t reason, char *filePath, int line, int column) {
   printf ("\n\x1B[0;31mABORT:\x1B[m %s at line %d, column %d", filePath, line, column);
   switch (reason) {
     case A_IF:
@@ -420,7 +420,7 @@ void ___abort (abort_t reason, char *filePath, int line, int column) {
       printf (":\n\tunknown reason <%d>.\n", reason); break;
   }
   printf("\n");
-  ___freeTrashCollector();
+  _freeTrashCollector();
   exit (EXIT_FAILURE);
 }
 
@@ -433,7 +433,7 @@ typedef enum
   , W_COUPINVARIANT
   } warning_t;
 
-void ___warn (warning_t reason, char *filePath, int line, int column) {
+void _warn (warning_t reason, char *filePath, int line, int column) {
   printf ("\x1B[0;35mWARNING:\x1B[m at line %d, column %d", line, column);
   switch (reason) {
     case W_MANUAL:
@@ -453,52 +453,52 @@ void ___warn (warning_t reason, char *filePath, int line, int column) {
   }
 }
 
-int ___abs_i (int x, char *filePath, int line, int column) {
+int _abs_i (int x, char *filePath, int line, int column) {
   if (x < 0){
     if (x == INT_MIN)
-      ___abort (A_OVERFLOW, filePath,  line, column);
+      _abort (A_OVERFLOW, filePath,  line, column);
     return (-x);
   } else {
     return x;
   }
 }
 
-double ___abs_f (double x) {
+double _abs_f (double x) {
   return x < 0 ? (-x) : x;
 }
 
-int ___sqrt_i (int x, char *filePath, int line, int column) {
+int _sqrt_i (int x, char *filePath, int line, int column) {
   if (x < 0)
-    ___abort (A_NEGATIVE_ROOT, filePath,  line, column);
+    _abort (A_NEGATIVE_ROOT, filePath,  line, column);
   return floor(sqrt(x));
 }
 
-double ___sqrt_f (double x, char *filePath, int line, int column) {
+double _sqrt_f (double x, char *filePath, int line, int column) {
   if (x < 0)
-    ___abort (A_NEGATIVE_ROOT, filePath,  line, column);
+    _abort (A_NEGATIVE_ROOT, filePath,  line, column);
   return sqrt(x);
 }
 
 
-int ___powInt (int x, int y, char *filePath, int line, int column) {
+int _powInt (int x, int y, char *filePath, int line, int column) {
   if (y < 0)
-    ___abort (A_NEGATIVE_EXPONENT, filePath,  line, column);
+    _abort (A_NEGATIVE_EXPONENT, filePath,  line, column);
   else if (y == 0)
     return 1;
   else if (y % 2 == 1) {
     int tmp;
-    if (__builtin_smul_overflow(x, ___powInt (x, y-1, filePath, line, column), &tmp))
+    if (__builtin_smul_overflow(x, _powInt (x, y-1, filePath, line, column), &tmp))
       // overflow
-      ___abort (A_OVERFLOW, filePath,  line, column);
+      _abort (A_OVERFLOW, filePath,  line, column);
     // all ok
     return tmp;
   } else {
-    int tmp = ___powInt (x, y/2, filePath, line, column);
+    int tmp = _powInt (x, y/2, filePath, line, column);
     int tmp2;
 
     if (__builtin_smul_overflow(tmp, tmp, &tmp2))
       // overflow
-      ___abort (A_OVERFLOW, filePath,  line, column);
+      _abort (A_OVERFLOW, filePath,  line, column);
     // all ok
     return tmp2;
   }
@@ -506,66 +506,66 @@ int ___powInt (int x, int y, char *filePath, int line, int column) {
 }
 
 
-int ___float2int (double x, char *filePath, int line, int column) {
+int _float2int (double x, char *filePath, int line, int column) {
   if (-2147483648.49 > x || x > 2147483647.49)
-    ___abort (A_OVERFLOW, filePath,  line, column);
+    _abort (A_OVERFLOW, filePath,  line, column);
   return (x >= 0 ? (int)(x+0.5) : (int)(x-0.5));
 }
 
-int ___char2int (char x) {
+int _char2int (char x) {
   return (int)(x);
 }
 
-char ___float2char (double x, char *filePath, int line, int column) {
+char _float2char (double x, char *filePath, int line, int column) {
   if (0.0 > x || x > 255.49)
-    ___abort (A_OVERFLOW, filePath,  line, column);
+    _abort (A_OVERFLOW, filePath,  line, column);
   return (char)(x+0.5);
 }
 
-char ___int2char (int x, char *filePath, int line, int column) {
+char _int2char (int x, char *filePath, int line, int column) {
   if (0 > x || x > 255)
-    ___abort (A_OVERFLOW, filePath,  line, column);
+    _abort (A_OVERFLOW, filePath,  line, column);
   return (char)x;
 }
 
-double ___char2float (char x) {
+double _char2float (char x) {
   return (double)(x);
 }
 
-double ___int2float (int x) {
+double _int2float (int x) {
   return (double)(x);
 }
 
 
-int ___traceInt (int x) {
+int _traceInt (int x) {
   printf("TRACE: %i\n", x);
   return x;
 }
-double ___traceFloat (double x) {
+double _traceFloat (double x) {
   printf("TRACE: %f\n", x);
   return x;
 }
-char ___traceChar (char x) {
+char _traceChar (char x) {
   printf("TRACE: %c\n", x);
   return x;
 }
-int ___traceBool (int x) {
+int _traceBool (int x) {
   printf("TRACE: %s\n", x ? "true" : "false");
   return x;
 }
-int ___traceStringInt (char* x, int y) {
+int _traceStringInt (char* x, int y) {
   printf("TRACE: (%s, %i)\n", x, y);
   return y;
 }
-double ___traceStringFloat (char* x, double y) {
+double _traceStringFloat (char* x, double y) {
   printf("TRACE: (%s, %f)\n", x, y);
   return y;
 }
-char ___traceStringChar (char* x, char y) {
+char _traceStringChar (char* x, char y) {
   printf("TRACE: (%s, %c)\n", x, y);
   return y;
 }
-int ___traceStringBool (char* x, int y) {
+int _traceStringBool (char* x, int y) {
   printf("TRACE: (%s, %s)\n", x, y ? "true" : "false");
   return y;
 }

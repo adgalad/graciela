@@ -51,26 +51,28 @@ data Entry
     , _info      :: Entry' }
   deriving (Eq, Generic, Serialize)
 
-
+unpack' text = case unpack text of 
+  (x:xs) | x == '$' -> xs
+  x -> x
 
 instance Treelike Entry where
   toTree Entry { _entryName, _loc, _info } = case _info of
     Enum { _enumType, _enumValue } ->
       Node ( "Enum `" <>
-        unpack _entryName <> "` " <> show _loc)
+        unpack' _entryName <> "` " <> show _loc)
         [ leaf ("Type: " <> show _enumType)
         , toTree _enumValue ]
 
     Var { _varType, _varValue, _varConst } ->
       Node ((if _varConst then "Constant" else "Variable") <> " `" <>
-        unpack _entryName <> "` " <> show _loc)
+        unpack' _entryName <> "` " <> show _loc)
         [ leaf ("Type: " <> show _varType)
         , case _varValue of
             Nothing    -> leaf "Not initialized"
             Just value -> Node "Value: " [toTree value] ]
 
     SelfVar { _selfType, _selfValue } ->
-      Node ("Self Variable `" <> unpack _entryName <> "` " <> show _loc)
+      Node ("Self Variable `" <> unpack' _entryName <> "` " <> show _loc)
         [ leaf ("Type: " <> show _selfType)
         , case _selfValue of
             Nothing    -> leaf "Not initialized"
@@ -80,7 +82,7 @@ instance Treelike Entry where
         [ leaf ("Type: " <> show _aliasType)
         , leaf ("Value: " <> show _aliasValue)]
     Argument { _argMode, _argType } ->
-      Node ("Argument `" <> unpack _entryName <> "` " <> show _loc)
+      Node ("Argument `" <> unpack' _entryName <> "` " <> show _loc)
         [ leaf $ "Type: " <> show _argType
         , leaf $ "Mode: " <> show _argMode ]
 

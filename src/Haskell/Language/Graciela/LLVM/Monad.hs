@@ -139,196 +139,173 @@ getFilePathOperand filePath = use stringIds >>= pure . Map.lookup (pack filePath
 callable :: Type -> String -> Either a Operand
 callable t = Right . ConstantOperand . GlobalReference t . Name
 
-firstSetString, nextSetString :: String
-firstSetString = "___firstSet"
-nextSetString = "___nextSet"
 
-copyArrayString :: String
-copyArrayString = "___copyArray"
-
-firstMultisetString, nextMultisetString :: String
-firstMultisetString = "___firstMultiset"
-nextMultisetString = "___nextMultiset"
-
-firstSequenceString, nextSequenceString :: String
-firstSequenceString = "___firstSequence"
-nextSequenceString = "___nextSequence"
-
-initTrashCollectorString, freeTrashCollectorString, openScopeString :: String
-initTrashCollectorString = "___initTrashCollector"
-freeTrashCollectorString = "___freeTrashCollector"
-openScopeString = "___openScope"
-
-newSetString, newSeqString, newMultisetString :: String
-newSetString = "___newSet"
-newSeqString = "___newSequence"
-newMultisetString = "___newMultiset"
-
-newSetPairString,newMultisetPairString, newSeqPairString, newFunction, newRelation :: String
-newSetPairString      = "___newSetPair"
-newMultisetPairString = "___newMultisetPair"
-newSeqPairString      = "___newSequencePair"
-newFunction           = "___newFunction"
-newRelation           = "___newRelation"
-
-equalSetString, equalSeqString, equalMultisetString :: String
-equalSetString      = "___equalSet"
-equalSeqString      = "___equalSequence"
-equalMultisetString = "___equalMultiset"
-equalFuncString     = "___equalFunction"
-equalRelString      = "___equalRelation"
-equalSetPairString      = "___equalSetPair"
-equalSeqPairString      = "___equalSequencePair"
-equalMultisetPairString = "___equalMultisetPair"
-equalTupleString        = "___equalTuple"
-
-evalFuncString, evalRelString :: String
-evalFuncString     = "___pairFunction"
-evalRelString      = "___pairRelation"
-
-sizeSetString, sizeSeqString, sizeMultisetString, sizeRelString, sizeFuncString :: String
-sizeSetString      = "___sizeSet"
-sizeSeqString      = "___sizeSequence"
-sizeMultisetString = "___sizeMultiset"
-sizeRelString      = "___sizeRelation"
-sizeFuncString     = "___sizeFunction"
-
-supersetSetString, supersetMultisetString :: String
-supersetSetString      = "___includesSet"
-supersetMultisetString = "___includesMultiset"
-supersetSetPairString      = "___includesSetPair"
-supersetMultisetPairString = "___includesMultisetPair"
-
-ssupersetSetString, ssupersetMultisetString :: String
-ssupersetSetString      = "___includesSSet"
-ssupersetMultisetString = "___includesSMultiset"
-ssupersetSetPairString  = "___includesSSetPair"
-ssupersetMultisetPairString = "___includesSMultisetPair"
-
-insertSetString, insertSeqString, insertMultisetString :: String
-insertSetString      = "___insertSet"
-insertSeqString      = "___insertSequence"
-insertMultisetString = "___insertMultiset"
-
-insertSetPairString, insertMultisetPairString, insertSeqPairString:: String
-insertSetPairString      = "___insertSetPair"
-insertMultisetPairString = "___insertMultisetPair"
-insertSeqPairString      = "___insertSequencePair"
+firstSetString = "_firstSet"
+nextSetString  = "_nextSet"
 
 
-isElemSetString, isElemMultisetString, isElemSeqString :: String
-isElemSetString      = "___isElemSet"
-isElemMultisetString = "___isElemMultiset"
-isElemSeqString      = "___isElemSequence"
-isElemSetPairString      = "___isElemSetPair"
-isElemMultisetPairString = "___isElemMultisetPair"
-isElemSeqPairString      = "___isElemSequencePair"
+copyArrayString = "_copyArray"
 
 
-unionSetString, unionMultisetString :: String
-unionSetString          = "___unionSet"
-unionMultisetString     = "___unionMultiset"
-unionSetPairString      = "___unionSetPair"
-unionMultisetPairString = "___unionMultisetPair"
-unionFunctionString     = "___unionFunction"
-
-intersectSetString, intersectMultisetString :: String
-intersectSetString          = "___intersectSet"
-intersectMultisetString     = "___intersectMultiset"
-intersectSetPairString      = "___intersectSetPair"
-intersectMultisetPairString = "___intersectMultisetPair"
-intersectFunctionString     = "___intersectFunction"
-
-differenceSetString, differenceMultisetString :: String
-differenceSetString          = "___differenceSet"
-differenceMultisetString     = "___differenceMultiset"
-differenceSetPairString      = "___differenceSetPair"
-differenceMultisetPairString = "___differenceMultisetPair"
-differenceFunctionString     = "___differenceFunction"
-
-multisetSumString, concatSequenceString :: String
-multisetSumString        = "___sumMultiset"
-concatSequenceString     = "___concatSequence"
-multisetPairSumString    = "___sumMultisetPair"
-concatSequencePairString = "___concatSequencePair"
-atSequenceString         = "___atSequence"
-atSequencePairString     = "___atSequencePair"
+firstMultisetString = "_firstMultiset"
+nextMultisetString  = "_nextMultiset"
 
 
-freeString :: String
-freeString = "___free"
+firstSequenceString = "_firstSequence"
+nextSequenceString  = "_nextSequence"
 
-mallocString :: String
-mallocString   = "___malloc"
--- mallocTCString = "___mallocTC"
 
-addPointerString, removePointerString, derefPointerString :: String
-addPointerString    = "___addPointer"
-removePointerString = "___removePointer"
-derefPointerString  = "___derefPointer"
+initTrashCollectorString = "_initTrashCollector"
+freeTrashCollectorString = "_freeTrashCollector"
+openScopeString = "_openScope"
 
-lnString      :: String
-lnString      = "___ln"
-writeIString  :: String
-writeIString  = "___writeInt"
-writeBString  :: String
-writeBString  = "___writeBool"
-writeCString  :: String
-writeCString  = "___writeChar"
-writeFString  :: String
-writeFString  = "___writeDouble"
-writeSString  :: String
-writeSString  = "___writeString"
-writePString  :: String
-writePString  = "___writePointer"
 
-randomInt     :: String
-randomInt     = "___random"
+newSetString = "_newSet"
+newSeqString = "_newSequence"
+newMultisetString = "_newMultiset"
 
-sqrtString    :: String
+
+newSetPairString      = "_newSetPair"
+newMultisetPairString = "_newMultisetPair"
+newSeqPairString      = "_newSequencePair"
+newFunction           = "_newFunction"
+newRelation           = "_newRelation"
+
+
+equalSetString      = "_equalSet"
+equalSeqString      = "_equalSequence"
+equalMultisetString = "_equalMultiset"
+equalFuncString     = "_equalFunction"
+equalRelString      = "_equalRelation"
+equalSetPairString      = "_equalSetPair"
+equalSeqPairString      = "_equalSequencePair"
+equalMultisetPairString = "_equalMultisetPair"
+equalTupleString        = "_equalTuple"
+
+
+evalFuncString     = "_pairFunction"
+evalRelString      = "_pairRelation"
+
+
+sizeSetString      = "_sizeSet"
+sizeSeqString      = "_sizeSequence"
+sizeMultisetString = "_sizeMultiset"
+sizeRelString      = "_sizeRelation"
+sizeFuncString     = "_sizeFunction"
+
+
+supersetSetString      = "_includesSet"
+supersetMultisetString = "_includesMultiset"
+supersetSetPairString      = "_includesSetPair"
+supersetMultisetPairString = "_includesMultisetPair"
+
+
+ssupersetSetString      = "_includesSSet"
+ssupersetMultisetString = "_includesSMultiset"
+ssupersetSetPairString  = "_includesSSetPair"
+ssupersetMultisetPairString = "_includesSMultisetPair"
+
+
+insertSetString      = "_insertSet"
+insertSeqString      = "_insertSequence"
+insertMultisetString = "_insertMultiset"
+
+
+insertSetPairString      = "_insertSetPair"
+insertMultisetPairString = "_insertMultisetPair"
+insertSeqPairString      = "_insertSequencePair"
+
+
+
+isElemSetString      = "_isElemSet"
+isElemMultisetString = "_isElemMultiset"
+isElemSeqString      = "_isElemSequence"
+isElemSetPairString      = "_isElemSetPair"
+isElemMultisetPairString = "_isElemMultisetPair"
+isElemSeqPairString      = "_isElemSequencePair"
+
+
+
+unionSetString          = "_unionSet"
+unionMultisetString     = "_unionMultiset"
+unionSetPairString      = "_unionSetPair"
+unionMultisetPairString = "_unionMultisetPair"
+unionFunctionString     = "_unionFunction"
+
+
+intersectSetString          = "_intersectSet"
+intersectMultisetString     = "_intersectMultiset"
+intersectSetPairString      = "_intersectSetPair"
+intersectMultisetPairString = "_intersectMultisetPair"
+intersectFunctionString     = "_intersectFunction"
+
+
+differenceSetString          = "_differenceSet"
+differenceMultisetString     = "_differenceMultiset"
+differenceSetPairString      = "_differenceSetPair"
+differenceMultisetPairString = "_differenceMultisetPair"
+differenceFunctionString     = "_differenceFunction"
+
+
+multisetSumString        = "_sumMultiset"
+concatSequenceString     = "_concatSequence"
+multisetPairSumString    = "_sumMultisetPair"
+concatSequencePairString = "_concatSequencePair"
+atSequenceString         = "_atSequence"
+atSequencePairString     = "_atSequencePair"
+
+
+
+freeString = "_free"
+
+
+mallocString   = "_malloc"
+-- mallocTCString = "_mallocTC"
+
+
+addPointerString    = "_addPointer"
+removePointerString = "_removePointer"
+derefPointerString  = "_derefPointer"
+
+
+lnString      = "_ln"
+writeIString  = "_writeInt"
+writeBString  = "_writeBool"
+writeCString  = "_writeChar"
+writeFString  = "_writeDouble"
+writeSString  = "_writeString"
+writePString  = "_writePointer"
+
+
+randomInt     = "_random"
+
+
 sqrtString    = "llvm.sqrt.f64"
-fabsString    :: String
 fabsString    = "llvm.fabs.f64"
-powString     :: String
 powString     = "llvm.pow.f64"
-powIString  :: String
-powIString  = "___powInt"
-
-minnumString  :: String
-minnumString  = "___min"
-maxnumString  :: String
-maxnumString  = "___max"
-minnumFstring :: String
-minnumFstring = "___minF"
-maxnumFstring :: String
-maxnumFstring = "___maxF"
-
-readIntStd    :: String
-readIntStd    = "___readIntStd"
-readBoolStd   :: String
-readBoolStd   = "___readBoolStd"
-readCharStd   :: String
-readCharStd   = "___readCharStd"
-readFloatStd  :: String
-readFloatStd  = "___readDoubleStd"
-
-openFileStr   :: String
-openFileStr   = "___openFile"
-readFileBool  :: String
-readFileBool  = "___readFileBool"
-readFileInt   :: String
-readFileInt   = "___readFileInt"
-closeFileStr  :: String
-closeFileStr  = "___closeFile"
-readFileChar  :: String
-readFileChar  = "___readFileChar"
-readFileFloat :: String
-readFileFloat = "___readFileDouble"
+powIString  = "_powInt"
 
 
-safeAdd       :: Word32 -> String
-safeAdd n     = "llvm.sadd.with.overflow.i" <> show n
-safeSub       :: Word32 -> String
-safeSub n     = "llvm.ssub.with.overflow.i" <> show n
-safeMul       :: Word32 -> String
-safeMul n     = "llvm.smul.with.overflow.i" <> show n
+minnumString  = "_min"
+maxnumString  = "_max"
+minnumFstring = "_minF"
+maxnumFstring = "_maxF"
+
+readIntStd    = "_readIntStd"
+readBoolStd   = "_readBoolStd"
+readCharStd   = "_readCharStd"
+readFloatStd  = "_readDoubleStd"
+
+openFileStr   = "_openFile"
+readFileBool  = "_readFileBool"
+readFileInt   = "_readFileInt"
+closeFileStr  = "_closeFile"
+readFileChar  = "_readFileChar"
+readFileFloat = "_readFileDouble"
+
+
+safeAdd, safeSub, safeMul :: Word32 -> String
+safeAdd n = "llvm.sadd.with.overflow.i" <> show n
+safeSub n = "llvm.ssub.with.overflow.i" <> show n
+safeMul n = "llvm.smul.with.overflow.i" <> show n
+

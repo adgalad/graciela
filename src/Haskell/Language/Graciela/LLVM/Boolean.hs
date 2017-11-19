@@ -28,7 +28,6 @@ import           Language.Graciela.LLVM.Type
 --------------------------------------------------------------------------------
 import           Control.Lens                            (use, (&))
 import           Data.Map                                as Map (lookup)
-import           Data.Maybe                              (fromMaybe)
 import           Data.Text                               (unpack)
 import qualified LLVM.General.AST.CallingConvention      as CC (CallingConvention (C))
 import qualified LLVM.General.AST.Constant               as C (Constant (..))
