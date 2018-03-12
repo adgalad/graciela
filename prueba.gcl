@@ -35,36 +35,62 @@ begin
     {post true post}
     |[
       s.Hope := e;
-
     ]|        
 end
 
+
 alias GG := S(int*);
 
-proc name (ref x : int)
-  {pre  true  pre}
-  {post x' == 0 /\ x == 10 post}
+proc name (in x : array[3] of int)
+  
   |[
-    x := 10;
+    write(x[2]);
+    x[1] := 10;
   ]|        
 
+func _trace (x : float) -> float
+  |[
+    1.0
+  ]|
+
 main |[
-  var x : int;
+  var __x__ : int;
+  var x-r
   var f : float;
-  var p : int*;
-  var i := 0 : int;
-  var y := [float*]p : float*;
-  var file := "hola" : char*;
+  var p,q : int*;
+  // var i := 0 : int;
+  // var y,z : float*;
+  // var file := "hola" : char*;
   var Q : GG;
+  // var p1, p2 : array[3] of int;
+  // var a3 : array[2,3] of array[2,2] of array[3,2] of int;
+  // p1[0], p1[1], p1[2] := 100,2,3;
+  // writeln(">>> ", __x__ + 10 );
+  // writeln(p1[0]);
+  // writeln(p1[1]);
+  // writeln(p1[2]);
+  // write("<<<");
+  
+  // p := [int*](&p1)+ 1;
+  // q := [int*](&p2)+1;
+  // y := [float*]q;
+  // z := [float*]p;
+  // *y := *z;
+
+  // write(">>> ");
+  // writeln(p2[0]);
+  // writeln(p2[1]);
+  // writeln(p2[2]);
+  // write("<<<");
+  
   new(p);
-  *p := 1010101;
-  c(Q,p);
-  writeln("es? > ", *Q.Hope);
+  // name(p1);
+  // *p := 1010101;
+  // c(Q,p);
+  // writeln("es? > ", *Q.Hope);
   // read(x,f,i) from "file";
   // writeln(">> ", *p);
   // writeln(x);
-  writeln(file[3], file[2], file[1], file[-1]);
-  name(x);
   // writeln(f);
   // writeln(i);
   writeln(">>", A);
@@ -74,7 +100,8 @@ main |[
   writeln(">>", E);
   writeln(">>", F);
   writeln(">>", G);
-  writeln(">>", H);
+  // free(Q.Hope);
+  // writeln(">>", H);
   // x := p[0];
 ]|
 end

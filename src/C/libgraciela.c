@@ -40,7 +40,7 @@ void _closeFile(int8_t* file) {
 }
 
 int8_t* _malloc(int size){  
-  int8_t* p = calloc(1,size);
+  int8_t* p = malloc(size);
   if (!p) {
     printf("\x1B[0;31mError:\x1B[m Out of memory.");
     exit(EXIT_FAILURE);

@@ -7,7 +7,6 @@
 module Language.Graciela.Entry
   ( Entry (..)
   , Entry' (..)
-  -- , Value (..)
   , info
   , varType
   ) where
@@ -25,7 +24,7 @@ import           Data.Text                        (unpack)
 
 data Entry'
   = Enum
-    { _enumType  :: Type 
+    { _enumType  :: Type
     , _enumValue :: Expression }
   | Var
     { _varType  :: Type
@@ -51,7 +50,7 @@ data Entry
     , _info      :: Entry' }
   deriving (Eq, Generic, Serialize)
 
-unpack' text = case unpack text of 
+unpack' text = case unpack text of
   (x:xs) | x == '$' -> xs
   x -> x
 
@@ -78,7 +77,7 @@ instance Treelike Entry where
             Nothing    -> leaf "Not initialized"
             Just value -> Node "Initial value: " [toTree value] ]
     Alias { _aliasType, _aliasValue } ->
-      Node ("Alias")
+      Node "Alias"
         [ leaf ("Type: " <> show _aliasType)
         , leaf ("Value: " <> show _aliasValue)]
     Argument { _argMode, _argType } ->

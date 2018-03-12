@@ -1,26 +1,24 @@
 
+/*% LANGUAGE MemoryOperations  %*/
+module Memory begin
 
-module chao begin
+	// extern func hola(x : int) -> int
 
 
+	abstract MemA begin {repinv true repinv} end
 
-abstract jose( )
-begin
-	/* jose variables */
-	 
+	type Mem(T) implements MemA begin
+		{repinv true repinv}
 	
-	{repinv true repinv}
-
-	/* jose procedures and functions */
-	 
-end
-
-
-func fun2 (x : int) -> int
-  {pre   true  pre}
-  {post  true post}
-  |[
-    2
-  ]|
-
+		{coupinv true coupinv}
+	
+		proc malloc (in m : Mem(T), in n : int, out x : T*)
+			{pre  true  pre}
+			{post true post}
+			|[ 
+				var arr : (array[n] of T)*;
+				new(arr);
+				x := &((*arr)[0]);
+			]| 
+	end
 end

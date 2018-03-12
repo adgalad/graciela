@@ -26,20 +26,19 @@ import           Language.Graciela.LLVM.Quantification
 import           Language.Graciela.LLVM.State
 import           Language.Graciela.LLVM.Type
 --------------------------------------------------------------------------------
-import           Control.Lens                            (use, (&))
-import           Data.Map                                as Map (lookup)
-import           Data.Text                               (unpack)
-import qualified LLVM.General.AST.CallingConvention      as CC (CallingConvention (C))
-import qualified LLVM.General.AST.Constant               as C (Constant (..))
-import           LLVM.General.AST.FloatingPointPredicate (FloatingPointPredicate (OEQ, OGE, OGT, OLE, OLT))
-import           LLVM.General.AST.Instruction            (Instruction (..),
-                                                          Named (..),
-                                                          Terminator (..))
-import           LLVM.General.AST.IntegerPredicate       (IntegerPredicate (EQ, SGE, SGT, SLE, SLT))
-import           LLVM.General.AST.Name                   (Name)
-import           LLVM.General.AST.Operand                (Operand (..))
-import           LLVM.General.AST.Type                   (ptr)
-import           Prelude                                 hiding (Ordering (..))
+import           Control.Lens                    (use, (&))
+import           Data.Map                        as Map (lookup)
+import           Data.Text                       (unpack)
+import qualified LLVM.AST.CallingConvention      as CC (CallingConvention (C))
+import qualified LLVM.AST.Constant               as C (Constant (..))
+import           LLVM.AST.FloatingPointPredicate (FloatingPointPredicate (OEQ, OGE, OGT, OLE, OLT))
+import           LLVM.AST.Instruction            (Instruction (..), Named (..),
+                                                 Terminator (..))
+import           LLVM.AST.IntegerPredicate       (IntegerPredicate (EQ, SGE, SGT, SLE, SLT))
+import           LLVM.AST.Name                   (Name)
+import           LLVM.AST.Operand                (Operand (..))
+import           LLVM.AST.Type                   (ptr)
+import           Prelude                         hiding (Ordering (..))
 --------------------------------------------------------------------------------
 
 boolean :: --(Expression -> LLVM Operand) -- ^ non-boolean expression code generator
@@ -126,19 +125,14 @@ boolean true false e@Expression { loc, exp' } = do
               , metadata = [] }
 
           elemCall <- newLabel "elemCall"
-
-          addInstruction $ elemCall := Call
-            { tailCallKind = Nothing
-            , callingConvention = CC.C
-            , returnAttributes = []
-            , function = callable boolType $ case expType rexpr of
-                GSet      _ -> isElemSetString
-                GMultiset _ -> isElemMultisetString
-                GSeq      _ -> isElemSeqString
-                _           -> internal "impossible type for elem argument"
-            , arguments = (,[]) <$> [rOperand, LocalReference lintType item]
-            , functionAttributes = []
-            , metadata = [] }
+          let 
+            args = [rOperand, LocalReference lintType item]
+            fName = case expType rexpr of
+              GSet      _ -> isElemSetString
+              GMultiset _ -> isElemMultisetString
+              GSeq      _ -> isElemSeqString
+              _           -> internal "impossible type for elem argument"
+          callFunction fName args >>= addInstruction . (elemCall :=)
 
           let [trueDest, falseDest] = [true, false] & case binOp of
                 Elem    -> id
@@ -216,21 +210,16 @@ boolean true false e@Expression { loc, exp' } = do
               , metadata = [] }
 
           _ |  type' =:= highLevel || type' =:= GTuple GAny GAny -> do
-            addInstruction $ comp := Call
-              { tailCallKind = Nothing
-              , callingConvention = CC.C
-              , returnAttributes = []
-              , function = callable boolType $ case type' of
+            let 
+              fName = case type' of
                 GSet      _ -> equalSetString
                 GMultiset _ -> equalMultisetString
                 GSeq      _ -> equalSeqString
                 GFunc   _ _ -> equalFuncString
                 GRel    _ _ -> equalRelString
                 GTuple  _ _ -> equalTupleString
-              , arguments = (,[]) <$> [lOperand, rOperand]
-              , functionAttributes = []
-              , metadata = [] }
-
+            callFunction fName [lOperand, rOperand] >>= addInstruction . (comp :=)
+            
         let [trueDest, falseDest] = [true, false] & if
               | binOp `elem` [AEQ, BEQ] -> id
               | binOp `elem` [ANE, BNE] -> reverse
@@ -245,23 +234,19 @@ boolean true false e@Expression { loc, exp' } = do
 
         comp <- newLabel "setComp"
 
-        let [lOp', rOp'] = [lOp, rOp] & if
+        let 
+          [lOp', rOp'] = [lOp, rOp] & if
               | binOp `elem` [Subset, SSubset] -> reverse
               | binOp `elem` [Superset, SSuperset] -> id
-        addInstruction $ comp := Call
-          { tailCallKind = Nothing
-          , callingConvention = CC.C
-          , returnAttributes = []
-          , function = callable boolType $ case expType lexpr of
+          fName = case expType lexpr of
             GSet      _ -> if
               | binOp `elem` [Subset, Superset]   -> supersetSetString
               | binOp `elem` [SSubset, SSuperset] -> ssupersetSetString
             GMultiset _ -> if
               | binOp `elem` [Subset, Superset]   -> supersetMultisetString
               | binOp `elem` [SSubset, SSuperset] -> ssupersetMultisetString
-          , arguments = (,[]) <$> [lOp', rOp']
-          , functionAttributes = []
-          , metadata = [] }
+        
+        callFunction fName [lOp', rOp'] >>= addInstruction . (comp :=)  
 
         terminate CondBr
           { condition = LocalReference boolType comp
@@ -278,14 +263,8 @@ boolean true false e@Expression { loc, exp' } = do
           lOp <- expression lexpr
           rOp <- expression rexpr
           call <- newLabel "seqAt"
-          addInstruction $ call := Call
-            { tailCallKind       = Nothing
-            , callingConvention  = CC.C
-            , returnAttributes   = []
-            , function           = callable pointerType atSequenceString
-            , arguments          = (,[]) <$> [lOp, rOp, filePath, line, col]
-            , functionAttributes = []
-            , metadata           = [] }
+          let args = [lOp, rOp, filePath, line, col]
+          callFunction atSequenceString args >>= addInstruction . (call :=)
 
           seqAtResult <- newLabel "seqAtResult"
 
@@ -340,7 +319,7 @@ boolean true false e@Expression { loc, exp' } = do
 
         _ -> pure . unpack $ fName
       asserts <- use evalAssertions
-      recArgs <- fmap (,[]) <$> if fRecursiveCall && asserts
+      recArgs <- if fRecursiveCall && asserts
         then do
           use boundOp >>= pure . \case 
             Nothing -> []
@@ -350,15 +329,8 @@ boolean true false e@Expression { loc, exp' } = do
           else pure []
 
       label <- newLabel "funcResult"
-      addInstruction $ label := Call
-        { tailCallKind       = Nothing
-        , callingConvention  = CC.C
-        , returnAttributes   = []
-        , function           = callable boolType fName'
-        , arguments          = recArgs <> arguments
-        , functionAttributes = []
-        , metadata           = [] }
-
+      callFunction fName' (recArgs <> arguments) >>= addInstruction . (label :=)
+      
       terminate CondBr
         { condition = LocalReference boolType label
         , trueDest  = true
@@ -369,7 +341,7 @@ boolean true false e@Expression { loc, exp' } = do
         createArg x@Expression { expType, exp' } = do
           type' <- fill expType
 
-          (,[]) <$> if
+          if 
             | type' =:= GBool -> wrapBoolean x
 
             | type' =:= basicT || type' == I64 || 

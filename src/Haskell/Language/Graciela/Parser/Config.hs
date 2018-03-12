@@ -45,7 +45,7 @@ module Language.Graciela.Parser.Config
   , float2charString
   , int2charString
   , char2floatString
-  , int2floatString  
+  , int2floatString
   -- * trace pseudo-function strings
   , traceIntString
   , traceFloatString
@@ -81,7 +81,6 @@ import           Data.Set                         (Set)
 import qualified Data.Set                         as Set (empty)
 import           Data.Text                        (Text, pack)
 import           Text.Megaparsec.Error            (ParseError (..))
-import           Text.Megaparsec.Pos              (unsafePos)
 --------------------------------------------------------------------------------
 
 data Config = Config
@@ -109,13 +108,13 @@ defaultConfig enableTrace enableLowLevel noAssertions = Config
       at "otherwise" ?= Alias GBool  (BoolV True)
       at "MAX_INT"   ?= Alias GInt   (IntV maxBound)
       at "MIN_INT"   ?= Alias GInt   (IntV minBound)
-      
+
       at "pi"        ?= Alias GFloat (FloatV pi)
       at "\960"      ?= Alias GFloat (FloatV pi)
       at "tau"       ?= Alias GFloat (FloatV (2*pi))
       at "\964"      ?= Alias GFloat (FloatV (2*pi))
-      at "unbound"   .= if noAssertions 
-        then Just $ Alias GInt (IntV 0) 
+      at "unbound"   .= if noAssertions
+        then Just $ Alias GInt (IntV 0)
         else Nothing
 
     auxInsert st (k , e') = insertSymbol k (Entry k gracielaDef e') st
@@ -127,19 +126,20 @@ defaultConfig enableTrace enableLowLevel noAssertions = Config
       at "free"      ?= languageProcedure "free"
       at "new"       ?= languageProcedure "new"
       at "random"    ?= randomG
-      
-      where 
+
+      where
         wrap defName signatures = Definition
-          { defLoc  = gracielaDef
+          { defLoc   = gracielaDef
           , defName
-          , isDecl  = False
-          , pre     = undefined
-          , post    = undefined
-          , bound   = Nothing
-          , def'    = GracielaProc signatures }
+          , isDecl   = False
+          , isExtern = False
+          , pre      = undefined
+          , post     = undefined
+          , bound    = Nothing
+          , def'     = GracielaProc signatures }
 
     languageProcedure :: String -> (Seq Type -> Either Error (Text, Seq ArgMode))
-    languageProcedure name = (\s -> Right (pack name, []))
+    languageProcedure name = \s -> Right (pack name, [])
 
     randomG :: Seq Type -> Either Error (Text, Seq ArgMode)
     randomG [ GChar ]  = Right (pack randCharString,  [Ref])
@@ -180,15 +180,16 @@ defaultConfig enableTrace enableLowLevel noAssertions = Config
       at "trace"        .= if enableTrace
         then Just (traceG, [])
         else Nothing
-      where 
+      where
         wrap defName (signatures, casts) = Definition
-          { defLoc  = gracielaDef
+          { defLoc   = gracielaDef
           , defName
-          , isDecl  = False
-          , pre     = undefined
-          , post    = undefined
-          , bound   = Nothing
-          , def'    = GracielaFunc signatures casts }
+          , isDecl   = False
+          , isExtern = False
+          , pre      = undefined
+          , post     = undefined
+          , bound    = Nothing
+          , def'     = GracielaFunc signatures casts }
 
     traceG, toIntG, toCharG, toFloatG :: Seq Type -> Either Error (Type, Text, Bool)
     absG, codomainG, domainG, readlnG :: Seq Type -> Either Error (Type, Text, Bool)
@@ -196,7 +197,7 @@ defaultConfig enableTrace enableLowLevel noAssertions = Config
     relG, sqrtG, toMultisetG, toSetG  :: Seq Type -> Either Error (Type, Text, Bool)
     toSequenceG, isNanG, isInfG       :: Seq Type -> Either Error (Type, Text, Bool)
 
-    
+
 
     badArg = BadFunctionArgumentType'
       { fPos     = gracielaDef'

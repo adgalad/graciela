@@ -219,6 +219,7 @@ data Token
   | TokWhere
   | TokInclude
   | TokModule
+  | TokExtern
   | TokApostrophe
   | TokQuotation
   deriving (Eq, Ord)
@@ -344,11 +345,11 @@ instance Show Token where
 
     (TokBool    True) -> "true"
     (TokBool   False) -> "false"
-    (TokChar       c) -> show c
-    (TokInteger    n) -> show n
+    (TokChar       c) -> "char " <> show c
+    (TokInteger    n) -> "int " <> show n
     (TokBadInteger n) -> "\ESC[0;31m" <> show n <> "\ESC[m, out of range integer."
-    (TokFloat      n) -> show n
-    (TokString     s) -> show s
+    (TokFloat      n) -> "float " <> show n
+    (TokString     s) -> "string " <> show s
 
     TokArray          -> "array"
 
@@ -393,6 +394,7 @@ instance Show Token where
     TokWhere          -> "where"
     TokInclude        -> "include"
     TokModule         -> "module"
+    TokExtern         -> "extern"
     TokApostrophe     -> "\'"
     TokQuotation      -> "\""
     TokUnexpected t   -> show t

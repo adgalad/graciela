@@ -31,6 +31,7 @@ import           Control.Monad.Identity           (Identity, runIdentity)
 import           Control.Monad.Trans.Except       (ExceptT, runExceptT)
 import           Control.Monad.Trans.State        (runState)
 import           Data.Foldable                    (toList)
+import qualified Data.ByteString.Char8 as BS (putStrLn)
 import           Data.List                        (nub, intercalate)
 import           Data.Map.Strict                  (showTree)
 import qualified  Data.Map.Strict                  as Map (toList)
@@ -40,12 +41,12 @@ import           Data.Set                         (empty)
 import           Data.Text                        (Text, unpack)
 import           Data.Text.IO                     (readFile)
 
-import           LLVM.General.Context             (withContext)
-import           LLVM.General.Module              (File (..), Module,
+import           LLVM.Context                     (withContext)
+import           LLVM.Module              (File (..), Module,
                                                    withModuleFromAST,
                                                    writeLLVMAssemblyToFile,
                                                    writeObjectToFile)
-import           LLVM.General.Target              (withHostTargetMachine)
+import           LLVM.Target              (withHostTargetMachine)
 
 import           Prelude                          hiding (lex, readFile)
 
@@ -80,6 +81,11 @@ data Options = Options
   , optVersion      :: Bool
   , optErrors       :: Maybe Int
   , optOutName      :: Maybe String
+  , optLibs         :: [String]
+  , optSrcs         :: [String]
+  , optFrameworks   :: [String]
+  , optMacros       :: [String]
+  , optCpp          :: String
   , optAST          :: Bool
   , optSTable       :: Bool
   , optOptimization :: String
@@ -95,6 +101,11 @@ defaultOptions      = Options
   , optVersion      = False
   , optErrors       = Just 5
   , optOutName      = Nothing
+  , optLibs         = []
+  , optSrcs         = []
+  , optFrameworks   = []
+  , optMacros       = []
+  , optCpp          = ""
   , optAST          = False
   , optSTable       = False
   , optOptimization = ""
@@ -102,7 +113,7 @@ defaultOptions      = Options
   , optLLVM         = False
   , optClang        = clang
   , optLibGraciela  = lib
-  , optKeepTemp     = False 
+  , optKeepTemp     = False
   , optNoAssertions = False}
   where
     (clang, lib) --, abstractLib)
@@ -110,10 +121,10 @@ defaultOptions      = Options
         ( "clang-3.5"
         , "/usr/lib/libgraciela.so")
       | isMac =
-        ( "/usr/local/bin/clang-3.5"
+        ( "/usr/local/bin/clang"
         , "/usr/local/lib/libgraciela.so")
-      | isWindows = internal $ "Windows not supported :("
-      | otherwise = internal $ "Unknown OS, not supported :("
+      | isWindows = internal "Windows not supported :("
+      | otherwise = internal "Unknown OS, not supported :("
 
 options :: [Both (OptDescr (Options -> Options))]
 options =
@@ -161,7 +172,7 @@ options =
   , Left $ Option ['K'] ["keep-temp"]
     (NoArg (\opts -> opts { optKeepTemp = True }))
     "Keep temporary llvm file"
-  
+
   , Right $ Option ['O'] ["optimization"]
     (ReqArg (\level opts -> opts { optOptimization = "-O" <> level }) "LEVEL")
       "Optimization levels\n\
@@ -170,11 +181,36 @@ options =
       \-O2 Moderate level of optimization which enables most optimizations\n\
       \-Os Like -O2 with extra optimizations to reduce code size.\n\
       \-O3 Like -O2, except that it enables optimizations that take longer to perform or that may generate larger code (in an attempt to make the program run faster)."
-      
+
 
   , Right $ Option [] ["noAssertions"]
       (NoArg (\opts -> opts { optNoAssertions = True }))
       "Boost up the performance of the program by not generating code for run-time assertions like preconditions, postcondition and bounds."
+
+  , Left $ Option ['l'] []
+    (ReqArg (\lib opts -> if isMac 
+                    then opts { optLibs = lib:(optLibs opts) }
+                    else opts) "LIB")
+      "Link with library"
+  , Left $ Option ['c'] []
+    (ReqArg (\src opts -> opts { optSrcs = src:(optSrcs opts) }) "SOURCE")
+      "Add a C source file"
+  , Left $ Option ['f'] []
+    (ReqArg (\fw opts -> opts { optFrameworks = ["-framework",fw]<>(optFrameworks opts) }) "FRAMEWORK")
+      "Add a Framework"
+  , Left $ Option ['D'] []
+    (ReqArg (\macro opts -> opts { optMacros = ["-D",macro]<>(optMacros opts) }) "MACRO")
+      "Define a C/C++ Macro"
+
+  , Left $ Option [] ["stdc++"]
+    (OptArg (\std opts -> 
+          let 
+            std' = case std of 
+              Nothing   -> "-std=c++11"
+              Just std' -> "-std=c++" <> std'
+          in opts { optClang = "/usr/local/bin/clang++", optCpp = std' })  
+          "stdc++xx")
+      "Define c++ standard -stdc++[98,11,17]"
   ]
 
 opts :: IO (Options, [String])
@@ -199,21 +235,25 @@ compile fileName options = do
   let
     (tokens, pragmas) = lex fileName source
   (r, state) <- runParser program fileName (initialState pragmas) tokens
+  -- putStrLn $ show pragmas
+  -- putStrLn . unlines $ map show tokens
+
+  pure Nothing
 
   if null (state ^. errors)
     then case r of
-      Right program@Program { name } -> do
-        if| optAST options -> do
+      Right program@Program { name } ->
+        if | optAST options -> do
             {-Print AST-}
             putStrLn . drawTree . toTree $ program
             pure Nothing
 
-          | optSTable options -> do
+           | optSTable options -> do
             {-Print Symbol Table-}
             putStrLn . drawTree . toTree . defocus $ state ^. symbolTable
             pure Nothing
 
-          | otherwise -> do
+           | otherwise -> do
             {- Generate LLVM AST -}
             let
               files = toList $ state ^. filesToRead
@@ -222,29 +262,30 @@ compile fileName options = do
             newast <- programToLLVM files program (optNoAssertions options)
             let
               lltName = case optOutName options of
-                Nothing -> (unpack name) <> ".ll"
+                Nothing -> unpack name <> ".ll"
                 Just n  -> n <> ".t.ll"
+              writeFile f = writeLLVMAssemblyToFile (File f)
+
 
             {- And write it as IR on a ll file -}
-            withContext $ \context ->
-              liftError . withModuleFromAST context newast $ \m -> liftError $
-                writeLLVMAssemblyToFile (File lltName) m
+            withContext $ \context -> do
+              withModuleFromAST context newast (writeFile lltName)
 
-            let rf = state ^. readFiles
-            lltModFiles <- forM (Map.toList rf) $ \(_, gModule) -> do
+
+            let ms = state ^. modules
+            lltModFiles <- forM (toList ms) $ \gModule -> do
               modast <- moduleToLLVM files gModule (optNoAssertions options)
               let
                 lltModName = (unpack . M.name $ gModule) <> ".ll"
 
               {- Write Modules as IR on a ll file -}
               withContext $ \context ->
-                liftError . withModuleFromAST context modast $ \m -> liftError $
-                  writeLLVMAssemblyToFile (File lltModName) m
+                withModuleFromAST context modast (writeFile lltModName)
 
               pure lltModName
 
             let
-              cantSaveAs = length lltModFiles > 0 
+              cantUseOption'SaveAs' = not (null lltModFiles)
                         && (optKeepTemp options || optLLVM options || optAssembly options)
               assembly
                 | optLLVM options     = ["-S", "-emit-llvm"]
@@ -256,26 +297,33 @@ compile fileName options = do
                   | optLLVM options     -> unpack name <> ".ll"
                   | optAssembly options -> unpack name <> ".s"
                   | otherwise           -> unpack name
-              args = [optOptimization options]
+              args = optLibs options 
+                  <> optSrcs options 
+                  <> optFrameworks options
+                  <> optMacros options
+                  <> [optCpp options] 
+                  <> [optOptimization options]
                   <> assembly
                   <> [lltName] <> lltModFiles
-                  <> (if cantSaveAs then [] else ["-o", outName])
+                  <> (if cantUseOption'SaveAs' then [] else ["-o", outName])
                   <> [l | l <- [math, lib]
                         , not $ optLLVM options || optAssembly options ]
             -- traceM $ "clang " <> intercalate " " args
             (exitCode, out, errs) <- readProcessWithExitCode clang args ""
-            -- (exitCode, out, errs) <- readProcessWithExitCode "echo" ["hola"] ""
+            -- putStr out
+            -- putStr (clang <> show args)
 
-            putStr out
-            -- let keep = (optKeepTemp options || optLLVM options)
-            -- unless (keep) $ do
-            --   removeFile lltName
-            --   unless (optLLVM options) $ forM_ lltModFiles $ \file -> 
-            --     doesFileExist (takeFileName $ file) >>= \x -> when x $
-            --       removeFile . takeFileName $ file
-            -- -- unless (optKeepTemp options) $ 
-            -- --   forM_ (Map.toList rf) $ \(file, _) -> do 
-            -- --     removeFile $ replaceExtension file ".ogcl"
+            let keep = (optKeepTemp options || optLLVM options)
+            unless keep $ do
+              removeFile lltName
+              unless (optLLVM options) $ forM_ lltModFiles $ \file ->
+                doesFileExist (takeFileName file) >>= \x -> when x $
+                  removeFile $ takeFileName file
+
+            {- Remove .ogcl files. Creation of .ogcl files must be active at Parser/Module.hs -}
+            -- unless (optKeepTemp options) $
+            --   forM_ (Map.toList rf) $ \(file, _) -> do
+            --     removeFile $ replaceExtension file ".ogcl"
 
             case exitCode of
               ExitSuccess ->
@@ -283,18 +331,17 @@ compile fileName options = do
               ExitFailure _ ->
                 pure . Just $ "Clang error:\n" <> errs
 
-      Left message -> do
+      Left message ->
         pure . Just $ prettyError message
 
     else do
-      {- If any errors occurred during Parsing, they will be printed here-}
-
+      {- If some errors occurred during Parsing, they will be printed here-}
       let msg  = msg1 <> msg2
           msg1 = case optErrors options of
             Just n | length (state ^. errors) > n ->
               "Showing only the first " <> show n <> " errors of " <>
               show (length $ state ^. errors) <> " that were generated.\n\n"
-            otherwise -> ""
+            _ -> ""
           msg2 = unlines . mTake (optErrors options) . toList $
             prettyError <$> state ^. errors
       pure . Just $ msg

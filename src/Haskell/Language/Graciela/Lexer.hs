@@ -13,6 +13,7 @@ list of tokens.
 {-# LANGUAGE NamedFieldPuns  #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_HADDOCK show-extensions #-}
 
 module Language.Graciela.Lexer
@@ -21,18 +22,24 @@ module Language.Graciela.Lexer
 --------------------------------------------------------------------------------
 import           Language.Graciela.Common
 import           Language.Graciela.Token
+import           Language.Graciela.Error
 --------------------------------------------------------------------------------
 import           Control.Lens             (makeLenses, use, (%~))
 import           Control.Monad.State      (State, evalState, modify)
 import           Data.Set                 (union, (\\))
 import qualified Data.Set                 as Set (empty)
 import           Prelude                  hiding (lex)
-import           Text.Megaparsec          (Dec, ParsecT, alphaNumChar, anyChar,
-                                           between, char, eof, getPosition,
-                                           letterChar, many, some, manyTill,
-                                           notFollowedBy, oneOf, runParserT,
-                                           spaceChar, string, try, (<|>))
-import qualified Text.Megaparsec.Lexer    as L
+import           Text.Megaparsec          (ParsecT,
+                                           between, eof, getPosition,
+                                           many, some, manyTill,
+                                           notFollowedBy, runParserT,
+                                           try, (<|>))
+import           Text.Megaparsec.Error    (ParseError)
+import           Text.Megaparsec.Char     (alphaNumChar, anyChar, char,
+                                           letterChar, oneOf, spaceChar,
+                                           string)
+import           Control.Applicative.Combinators (skipMany)
+import qualified Text.Megaparsec.Char.Lexer    as L
 --------------------------------------------------------------------------------
 
 -- | Giving the Lexer a state allows recognition of Pragmas.
@@ -62,7 +69,7 @@ lex fn input = case evalState (runParserT lexer fn input) initialLexerState of
   Left  _  -> internal "uncaught unexpected token"
 --------------------------------------------------------------------------------
 
-type Lexer = ParsecT Dec Text (State LexerState)
+type Lexer = ParsecT GracielaError Text (State LexerState)
 
 
 lexer :: Lexer ([TokenPos], Set Pragma)
@@ -70,7 +77,7 @@ lexer = (,) <$> between sc eof (many token) <*> use pragmas
 
 
 sc :: Lexer ()
-sc = L.space (void spaceChar) lineComment blockComment
+sc = skipMany ((void spaceChar) <|> lineComment <|> blockComment)
   where
     lineComment  =  L.skipLineComment "//"
                 <|> L.skipLineComment "#!"
@@ -103,12 +110,12 @@ lexeme :: Lexer Token -> Lexer TokenPos
 lexeme p = flip . TokenPos <$> getPosition <*> p <*> getPosition <* sc
 
 
-symbol :: String -> Token -> Lexer TokenPos
+symbol :: Text -> Token -> Lexer TokenPos
 symbol w tok = try . lexeme $
   string w *>
   pure tok
 
-reserved :: String -> Token -> Lexer TokenPos
+reserved :: Text -> Token -> Lexer TokenPos
 reserved w tok = try . lexeme $
   string w *>
   notFollowedBy (alphaNumChar <|> char '_' <|> char '?' <|> char '\'') *>
@@ -122,7 +129,7 @@ charLit = lexeme $
 
 intLit :: Lexer TokenPos
 intLit = lexeme $ do
-  n <- L.integer
+  n <- L.decimal 
   pure $ if n > fromIntegral (maxBound :: Int32)
     then TokBadInteger n
     else TokInteger . fromInteger $ n
@@ -368,6 +375,7 @@ token  =  reserved "program"    TokProgram
       <|> reserved "where"      TokWhere
       <|> reserved "include"    TokInclude
       <|> reserved "module"     TokModule
+      <|> reserved "extern"     TokExtern
       <|> try charLit
       <|> try floatLit
       <|> intLit

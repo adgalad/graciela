@@ -24,25 +24,23 @@ import           Language.Graciela.LLVM.Monad
 import           Language.Graciela.LLVM.State
 import           Language.Graciela.LLVM.Type        
 --------------------------------------------------------------------------------
-import           Control.Lens                       (use)
-import           Data.Map                           as Map (lookup)
-import           Data.Maybe                         (isJust)
-import qualified Data.Set                           as Set
-import qualified LLVM.General.AST.CallingConvention as CC (CallingConvention (C))
-import qualified LLVM.General.AST.Constant          as C
-import           LLVM.General.AST.Instruction       (Instruction (..),
-                                                     Named (..),
-                                                     Terminator (..))
-import           LLVM.General.AST.IntegerPredicate  (IntegerPredicate (..))
-import           LLVM.General.AST.Name              (Name (..))
-import           LLVM.General.AST.Operand           (Operand (..))
-import           LLVM.General.AST.Type              (Type (ArrayType), ptr)
+import           Control.Lens               (use)
+import           Data.Map                   as Map (lookup)
+import           Data.Maybe                 (isJust)
+import qualified Data.Set                   as Set
+import qualified LLVM.AST.CallingConvention as CC (CallingConvention (C))
+import qualified LLVM.AST.Constant          as C
+import           LLVM.AST.Instruction       (Instruction (..), Named (..),
+                                             Terminator (..))
+import           LLVM.AST.IntegerPredicate  (IntegerPredicate (..))
+import           LLVM.AST.Name              (Name (..))
+import           LLVM.AST.Operand           (Operand (..))
+import           LLVM.AST.Type              (Type (ArrayType), ptr)
 import           Prelude                            hiding (Ordering (..))
 --------------------------------------------------------------------------------
 
 object :: Object -> LLVM Operand
 object obj@Object { objType, obj' } = do
-  dfunc <- use doingFunction
   objRef <- objectRef obj
   label <- newLabel "varObj"
   t <- toLLVMType objType
@@ -273,15 +271,9 @@ objectRef (Object loc t obj') = do
         line = constantOperand GInt . Left . fromIntegral $ unPos l
         col  = constantOperand GInt . Left . fromIntegral $ unPos c
       filePath <- getFilePathOperand f
+      let args = [ptr, pragma, filePath, line, col]
       use evalAssertions >>= \b -> when b $ 
-        addInstruction $ Do Call
-            { tailCallKind       = Nothing
-            , callingConvention  = CC.C
-            , returnAttributes   = []
-            , function           = callable voidType derefPointerString
-            , arguments          = (,[]) <$> [ptr, pragma, filePath, line, col]
-            , functionAttributes = []
-            , metadata           = [] }
+        callFunction derefPointerString args >>= addInstruction . Do
 
       pure . LocalReference objType' $ labelLoad
 
@@ -342,14 +334,8 @@ objectRef (Object loc t obj') = do
             let
               name = llvmName ("get_" <> fieldName <> "-" <> sName) t
             getLabel <- newLabel $ "get" <> show field
-            addInstruction $ getLabel := Call
-              { tailCallKind       = Nothing
-              , callingConvention  = CC.C
-              , returnAttributes   = []
-              , function           = callable (pointerType) name
-              , arguments          = [(ref,[])]
-              , functionAttributes = []
-              , metadata           = [] }
+            callFunction name [ref] >>= addInstruction . (getLabel :=)
+
 
             addInstruction $ Do Store
               { volatile = False

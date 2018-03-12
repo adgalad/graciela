@@ -30,8 +30,8 @@ module Language.Graciela.Parser.State
   , allowAbstNames
   , useLet
   , otherwises
-  , readFilesStack
-  , readFiles
+  , modulesStack
+  , modules
 
   , crName
   , crPos
@@ -59,7 +59,6 @@ import           Data.Set                         (Set)
 import qualified Data.Set                         as Set (empty)
 import           Data.Text                        (Text, pack)
 import           Text.Megaparsec.Error            (ParseError (..))
-import           Text.Megaparsec.Pos              (unsafePos)
 --------------------------------------------------------------------------------
 
 type RecursionAllowed = Bool
@@ -100,8 +99,8 @@ data State = State
   , _allowAbstNames  :: Bool
   , _useLet          :: Bool
   , _otherwises      :: [Maybe Bool]
-  , _readFilesStack  :: [String]
-  , _readFiles       :: Map String Module }
+  , _modulesStack    :: [String]
+  , _modules         :: Map String Module }
 
 makeLenses ''State
 
@@ -128,5 +127,5 @@ initialState pragmas = State
   , _allowAbstNames  = False
   , _useLet          = False
   , _otherwises      = []
-  , _readFilesStack  = []
-  , _readFiles       = Map.empty }
+  , _modulesStack  = []
+  , _modules       = Map.empty }

@@ -81,15 +81,15 @@ abstractDataType = do
     let
       typeArgs = Array.listArray (0, length atypes - 1) atypes
       abstractType = GDataType abstractName Nothing typeArgs
-    
+
     dts <- use dataTypes
-    case Map.lookup abstractName dts of 
-      Just s@Struct {structLoc = l@(Location (prevDef, _))} -> 
-        putError from . UnknownError $ 
-          "Redefinition of Data Type `" <> unpack abstractName <> "`.\n\t" <> 
+    case Map.lookup abstractName dts of
+      Just s@Struct {structLoc = l@(Location (prevDef, _))} ->
+        putError from . UnknownError $
+          "Redefinition of Data Type `" <> unpack abstractName <> "`.\n\t" <>
           "Already defined at " <> showRedefPos prevDef from <> "."
       _ -> pure ()
-   
+
     currentStruct .= Just (abstractType, Map.empty, Map.empty, Map.empty, typeArgs)
 
     Location(p,_) <- match' TokBegin
@@ -168,10 +168,10 @@ dataType = do
       void $ anyToken `manyTill` (void (match TokEnd) <|>  eof)
     else do
       dts <- use dataTypes
-      case Map.lookup name dts of 
-        Just s@Struct {structLoc = l@(Location (prevDef, _))} -> 
-          putError from . UnknownError $ 
-            "Redefinition of Data Type `" <> unpack name <> "`.\n\t" <> 
+      case Map.lookup name dts of
+        Just s@Struct {structLoc = l@(Location (prevDef, _))} ->
+          putError from . UnknownError $
+            "Redefinition of Data Type `" <> unpack name <> "`.\n\t" <>
             "Already defined at " <> showRedefPos prevDef from <> "."
         _ -> pure ()
       -- Get the struct of the abstract data type that is being implemented
@@ -387,7 +387,7 @@ coupleRel = do
   declarative $ braces $ aux (pos loc)
   where
     aux pos = do
-      
+
       insts' <- sequence <$> (assign' True) `sepBy` match TokSemicolon
       case insts' of
         Just insts | not (null insts) -> do
@@ -451,5 +451,3 @@ coupleRel = do
         putError (pos loc) . UnknownError $
           "Can not couple a element of an array or a dereference"
         pure Nothing
-
-

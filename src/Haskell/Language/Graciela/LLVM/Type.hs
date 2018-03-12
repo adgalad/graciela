@@ -17,6 +17,7 @@ module Language.Graciela.LLVM.Type
   , toLLVMType
   , sizeOf
   , llvmName
+  , llvmFunT
   ) where
 --------------------------------------------------------------------------------
 import           Language.Graciela.AST.Expression (Expression)
@@ -29,25 +30,24 @@ import           Language.Graciela.LLVM.State     (currentStruct, fullDataTypes,
                                                    moduleDefs, structs,
                                                    substitutionTable)
 --------------------------------------------------------------------------------
-import           Control.Lens                     (use, (%=))
-import           Data.Array                       ((!))
-import           Data.Foldable                    (toList)
-import           Data.List                        (intercalate, sortOn)
-import qualified Data.Map                         as Map (alter, lookup)
-import           Data.Maybe                       (fromMaybe)
-import           Data.Sequence                    ((|>))
-import           Data.Text                        (Text)
-import           Data.Word                        (Word32, Word64)
-import           LLVM.General.AST                 (Definition (..))
-import qualified LLVM.General.AST.AddrSpace       as LLVM (AddrSpace (..))
-import qualified LLVM.General.AST.Constant        as C
-import qualified LLVM.General.AST.Float           as C (SomeFloat(Double))
-import           LLVM.General.AST.Name            (Name (..))
-import           LLVM.General.AST.Operand         (Operand(..))
-import           LLVM.General.AST.Type            (double, i8, i32, i64,
-                                                   ptr)
-import qualified LLVM.General.AST.Type            as LLVM (Type (..))
-import           System.Info                      (arch)
+import           Control.Lens             (use, (%=))
+import           Data.Array               ((!))
+import           Data.Foldable            (toList)
+import           Data.List                (intercalate, sortOn)
+import qualified Data.Map                 as Map (alter, lookup)
+import           Data.Maybe               (fromMaybe)
+import           Data.Sequence            ((|>))
+import           Data.Text                (Text)
+import           Data.Word                (Word32, Word64)
+import           LLVM.AST                 (Definition (..))
+import qualified LLVM.AST.AddrSpace       as LLVM (AddrSpace (..))
+import qualified LLVM.AST.Constant        as C
+import qualified LLVM.AST.Float           as C (SomeFloat(Double))
+import           LLVM.AST.Name            (Name, mkName)
+import           LLVM.AST.Operand         (Operand(..))
+import           LLVM.AST.Type            (double, i8, i32, i64, ptr)
+import qualified LLVM.AST.Type            as LLVM (Type (..))
+import           System.Info              (arch)
 --------------------------------------------------------------------------------
 
 
@@ -92,6 +92,14 @@ fill t = do
     ta:_ -> fillType ta t
     []   -> t
 --------------------------------------------------------------------------------
+llvmFunT :: LLVM.Type -> [LLVM.Type] -> LLVM.Type
+llvmFunT ret args = ptr LLVM.FunctionType {
+  LLVM.resultType = ret,
+  LLVM.argumentTypes = args,
+  LLVM.isVarArg = False
+} 
+
+
 --------------------------------------------------------------------------------
 toLLVMType :: T.Type -> LLVM LLVM.Type
 toLLVMType t@(T.GTypeVar i _) = do
@@ -112,13 +120,13 @@ toLLVMType (T.GDataType _ Nothing t) = do
   use currentStruct >>= \case
     Just Struct {structBaseName = n, structTypes} -> do
       t' <- mapM fill structTypes
-      pure . LLVM.NamedTypeReference . Name . llvmName n $ t'
+      pure . LLVM.NamedTypeReference . mkName . llvmName n $ t'
     Nothing -> internal $ "Trying to get llvm type of abstract data type"
 
 -- Data Type
 toLLVMType (T.GDataType n _ t) = do
   t' <- mapM fill t
-  pure . LLVM.NamedTypeReference . Name . llvmName n . toList $ t'
+  pure . LLVM.NamedTypeReference . mkName . llvmName n . toList $ t'
 
 toLLVMType (T.GPointer t) = do 
   inner <- toLLVMType t  

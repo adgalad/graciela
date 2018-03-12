@@ -80,10 +80,10 @@ program = do
   symbolTable %= closeScope to
 
   case (name', main') of
-    (Just name, Just main) -> do
-      readFilesStack %= (:) (unpack name)
+    (Just name, Just insts) -> do
+      modulesStack %= (:) (unpack name)
       pend    <- use pendingDataType
-      structs     <- use dataTypes
+      structs <- use dataTypes
       fdts'   <- use fullDataTypes
       strings <- use stringIds
 
@@ -114,15 +114,15 @@ program = do
 
       p <- use pragmas
 
-      readFilesStack %= tail
+      modulesStack %= tail
       pure $ Just Program
-        { name        = name <> fromMaybe "" ext
-        , loc         = Location (from, to)
+        { name  = name <> fromMaybe "" ext
+        , loc   = Location (from, to)
         , defs
-        , insts       = main
+        , insts
         , structs
         , fullStructs
-        , P.pragmas   = p
+        , P.pragmas = p
         , strings }
 
     _ -> pure Nothing

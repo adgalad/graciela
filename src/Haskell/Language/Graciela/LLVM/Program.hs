@@ -4,57 +4,59 @@
 module Language.Graciela.LLVM.Program where
 --------------------------------------------------------------------------------
 import           Language.Graciela.AST.Definition
-import           Language.Graciela.AST.Instruction       (Instruction)
-import           Language.Graciela.AST.Program           hiding (structs)
-import qualified Language.Graciela.AST.Program           as P (structs)
-import qualified Language.Graciela.AST.Module            as M 
+import           Language.Graciela.AST.Instruction (Instruction)
+import           Language.Graciela.AST.Program     hiding (structs)
+import qualified Language.Graciela.AST.Program     as P (structs)
+import qualified Language.Graciela.AST.Module      as M 
 import           Language.Graciela.AST.Type
-import qualified Language.Graciela.AST.Type              as G (Type)
+import qualified Language.Graciela.AST.Type        as G (Type)
 import           Language.Graciela.Common
 import           Language.Graciela.LLVM.Abort
-import           Language.Graciela.LLVM.Definition       (definition,
-                                                          mainDefinition,
-                                                          preDefinitions)
+import           Language.Graciela.LLVM.Definition (definition,
+                                                    mainDefinition,
+                                                    preDefinitions)
 import           Language.Graciela.LLVM.Monad
 import           Language.Graciela.LLVM.State
-import qualified Language.Graciela.LLVM.State            as S (structs, State())
-import           Language.Graciela.LLVM.Struct           (defineStruct)
+import qualified Language.Graciela.LLVM.State      as S (structs, State())
+import           Language.Graciela.LLVM.Struct     (defineStruct)
 import           Language.Graciela.LLVM.Type
 --------------------------------------------------------------------------------
-import           Control.Lens                            (use, (%=), (.=))
-import           Control.Monad.Trans.State.Strict        (evalState)
-import           Data.Array                              (listArray)
-import qualified Data.ByteString                         as BS (unpack)
-import           Data.Foldable                           (toList)
-import           Data.List                               (sortOn)
-import           Data.Map.Strict                         (Map)
-import qualified Data.Map.Strict                         as Map (keys, size,
-                                                                 toAscList,
-                                                                 toList)
-import           Data.Sequence                           (fromList, singleton)
-import           Data.Text                               (Text, unpack)
-import           Data.Text.Encoding                      (encodeUtf8)
+import           Control.Lens                    (use, (%=), (.=))
+import           Control.Monad.Trans.State.Strict (evalState)
+import           Data.Array                      (listArray)
+import qualified Data.ByteString                 as BS (unpack)
+import           Data.String                     (fromString)
+import           Data.Foldable                   (toList)
+import           Data.List                       (sortOn)
+import           Data.Map.Strict                 (Map)
+import qualified Data.Map.Strict                 as Map (keys, size,
+                                                         toAscList,
+                                                         toList)
+import           Data.Sequence                   (fromList, singleton)
+import           Data.Text                       (Text, unpack)
+import           Data.Text.Encoding              (encodeUtf8)
 import           Data.Word
-import           LLVM.General.AST                        (Definition (..),
-                                                          Module (..),
-                                                          Parameter (..),
-                                                          defaultModule)
-import           LLVM.General.AST.Attribute
-import qualified LLVM.General.AST.CallingConvention      as CC
-import qualified LLVM.General.AST.Constant               as C
-import qualified LLVM.General.AST.FloatingPointPredicate as FL
-import qualified LLVM.General.AST.Global                 as G (Global (..),
-                                                               functionDefaults,
-                                                               globalVariableDefaults)
-import           LLVM.General.AST.Instruction            (FastMathFlags (..),
-                                                          Instruction,
-                                                          Named (..),
-                                                          Terminator (..))
-import qualified LLVM.General.AST.IntegerPredicate       as IL
-import           LLVM.General.AST.Operand                (Operand (..))
-import           LLVM.General.AST.Type
-import           System.Info                             (arch, os)
-import           System.Process                          (readProcess)
+import           LLVM.AST                        (Definition (..),
+                                                  Module (..),
+                                                  Parameter (..),
+                                                  defaultModule)
+import           LLVM.AST.Attribute
+import qualified LLVM.AST.CallingConvention      as CC
+import qualified LLVM.AST.Constant               as C
+import qualified LLVM.AST.FloatingPointPredicate as FL
+import qualified LLVM.AST.Global                 as G (Global (..),
+                                                       functionDefaults,
+                                                       globalVariableDefaults)
+import           LLVM.AST.Instruction            (FastMathFlags (..),
+                                                  Instruction,
+                                                  Named (..),
+                                                  Terminator (..))
+import qualified LLVM.AST.IntegerPredicate       as IL
+import           LLVM.AST.Name                   (mkName)
+import           LLVM.AST.Operand                (Operand (..))
+import           LLVM.AST.Type
+import           System.Info                     (arch, os)
+import           System.Process                  (readProcess)
 --------------------------------------------------------------------------------
 
 -- addFile :: String -> LLVM ()
@@ -64,17 +66,19 @@ programToLLVM :: [String]             -- ^ Files for read instructions
               -> Bool
               -> IO Module
 programToLLVM files 
-  Program { name, defs, insts, P.structs, fullStructs, strings, pragmas }
+  Program { name, defs, loc, insts, P.structs, fullStructs, strings, pragmas }
   noAssertions = do
   let 
+    Location (SourcePos fileName _ _,_) = loc
     asserts' = not (noAssertions || NoAssertions `elem` pragmas)
     definitions = evalState (unLLVM program) $ initialState {_evalAssertions = asserts' }
   version <- getOSXVersion -- Mac OS only
 
   return defaultModule
-    { moduleName         = unpack name
-    , moduleDefinitions  = toList definitions
-    , moduleTargetTriple = Just $ whichTarget version
+    { moduleName           = fromString $ unpack name
+    , moduleSourceFileName = fromString $ fileName
+    , moduleDefinitions    = toList definitions
+    -- , moduleTargetTriple   = Just . fromString $ whichTarget version
     }
     where 
       -- merge all predefined definitions (e.g read, write), user functions/procedures
@@ -92,8 +96,7 @@ programToLLVM files
         mapM_ definition defs
         
         mainDefinition insts files
-        e <- use moduleDefs
-        pure e
+        use moduleDefs
 
 
 
@@ -103,17 +106,19 @@ moduleToLLVM :: [String]             -- ^ Files for read instructions
               -> IO Module
 moduleToLLVM
   files
-  M.Module { M.name, M.defs, M.structs, M.fullStructs, M.strings, M.pragmas }
+  M.Module { M.name, M.loc, M.defs, M.structs, M.fullStructs, M.strings, M.pragmas}
   noAssertions = do
   let 
+    Location (SourcePos fileName _ _,_) = loc
     asserts' = not (noAssertions || NoAssertions `elem` pragmas)
     definitions = evalState (unLLVM gModule) $ initialState {_evalAssertions = asserts' }
   version <- getOSXVersion -- Mac OS only
 
   return defaultModule
-    { moduleName         = unpack name
-    , moduleDefinitions  = toList definitions
-    , moduleTargetTriple = Just $ whichTarget version
+    { moduleName           = fromString $ unpack name
+    , moduleSourceFileName = fromString $ fileName
+    , moduleDefinitions    = toList definitions
+    -- , moduleTargetTriple   = Just . fromString $ whichTarget version
     }
   where 
     gModule = do
@@ -175,5 +180,5 @@ addStrings prefix = do
         }
       pure . ConstantOperand $ C.GetElementPtr
         { C.inBounds = True
-        , C.address = C.GlobalReference charType name
+        , C.address = C.GlobalReference (ptr $ ArrayType n charType) name
         , C.indices = [C.Int 64 0, C.Int 64 0] }

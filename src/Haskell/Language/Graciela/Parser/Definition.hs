@@ -19,7 +19,7 @@ import           Language.Graciela.Common
 import           Language.Graciela.Entry
 import           Language.Graciela.Error
 import           Language.Graciela.Location
-import           Language.Graciela.Parser.Assertion   hiding (bound)
+import           Language.Graciela.Parser.Assertion
 import qualified Language.Graciela.Parser.Assertion   as A (bound)
 import           Language.Graciela.Parser.Declaration
 import           Language.Graciela.Parser.Expression
@@ -27,7 +27,7 @@ import           Language.Graciela.Parser.Instruction
 import           Language.Graciela.Parser.Monad
 import           Language.Graciela.Parser.State
 import           Language.Graciela.Parser.Type
-import           Language.Graciela.SymbolTable        hiding (empty)
+import           Language.Graciela.SymbolTable
 import qualified Language.Graciela.SymbolTable        as ST (empty)
 import           Language.Graciela.Token
 --------------------------------------------------------------------------------
@@ -43,7 +43,6 @@ import qualified Data.Sequence                        as Seq (empty, viewl)
 import qualified Data.Set                             as Set (member)
 import           Data.Text                            (Text, unpack)
 import           Text.Megaparsec                      (between, eof,
-                                                       errorUnexpected,
                                                        getPosition, lookAhead,
                                                        manyTill, optional, try,
                                                        withRecovery, (<|>))
@@ -51,15 +50,15 @@ import           Text.Megaparsec                      (between, eof,
 
 skipAssertions :: SourcePos -> Maybe (Maybe Expression) -> Maybe Expression
 skipAssertions pos = \case
-  Nothing -> Just $ Expression 
+  Nothing -> Just Expression
     { loc = Location (pos, pos)
     , expType = GBool
     , expConst = True
     , exp' = Value (BoolV True) }
-  Just e -> e 
+  Just e -> e
 
 -- externFunction :: Parser (Maybe Definition)
--- externFunction = do 
+-- externFunction = do
 --   lookAhead $ match TokFunc
 
 --   Location(_,from) <- match TokFunc
@@ -77,13 +76,13 @@ skipAssertions pos = \case
 
 function :: Parser (Maybe Definition)
 function = do
-  lookAhead $ match TokFunc
-
+  lookAhead $ match TokFunc <|> match TokExtern
+  extern <- optional $ match TokExtern
   Location(_,from) <- match TokFunc
   symbolTable %= openScope from
 
   idFrom <- getPosition
-  funcName <- fromMaybe "No ID"  <$> safeIdentifier
+  funcName <- fromMaybe ""  <$> safeIdentifier
   idTo <- getPosition
 
   symbolTable %= openScope from
@@ -98,7 +97,7 @@ function = do
   goToDT <- case (dt, funcParams') of
     (Just (dtType, _, procs, _, _), Just params) -> do
       let
-        aux = (\case; Just t -> t =:= dtType; _ -> False)
+        aux = \case; Just t -> t =:= dtType; _ -> False
         hasTV  = any (hasTypeVar  . snd) params
         hasDT' = any (aux . hasDT . snd) params
       if hasTV || hasTypeVar funcRetType || hasDT'
@@ -136,7 +135,7 @@ function = do
 
   bnd  <- join <$> optional A.bound
 
-  let
+  let 
     callTypeArgs = if goToDT
       then
         let Just (dtType,_,_,_,_) = dt
@@ -152,8 +151,13 @@ function = do
       , _crRecAllowed = isJust bnd
       , _crRecursive  = False  }
     _ -> Nothing
-
-  funcBody' <- between (match' TokOpenBlock) (match' TokCloseBlock) expression
+  funcBody' <- if not (isJust extern)
+    then between (match' TokOpenBlock) (match' TokCloseBlock) expression
+    else pure . Just $ Expression
+      { loc      = Location (idFrom, idTo)
+      , expType  = funcRetType
+      , expConst = True
+      , exp'     = Value . BoolV  $ True }
 
   funcRecursive <- use currentFunc >>= pure . \case
     Nothing -> False
@@ -173,9 +177,10 @@ function = do
         then do
           let
             def = Definition
-              { defLoc  = loc
-              , defName = funcName
-              , isDecl  = False
+              { defLoc   = loc
+              , defName  = funcName
+              , isDecl   = isJust extern
+              , isExtern = isJust extern
               , pre
               , post
               , bound = bnd
@@ -293,11 +298,11 @@ procedure = do
   prePos  <- getPosition
   pre'    <- skipAssertions prePos <$> optional precond
   postFrom <- getPosition
- 
+
   symbolTable %= openScope postFrom
 
   -- Temporal variables with the initial value of the arguments
-  case params' of 
+  case params' of
     Nothing -> pure ()
     Just params -> forM_ params $ \(name, argType, _{- ArgMode -}) -> do
       symbolTable %= insertSymbol (name <> "'") Entry
@@ -333,7 +338,7 @@ procedure = do
   symbolTable %= openScope from
 
   body' <- block <!>
-    (from, UnknownError "Procedure lacks a body; block expected.")
+    (from, NoProcBody (fromMaybe "" procName'))
 
   to <- getPosition
   symbolTable %= closeScope to -- body
@@ -355,6 +360,7 @@ procedure = do
           { defLoc  = loc
           , defName = procName
           , isDecl  = False
+          , isExtern = False
           , pre
           , post
           , bound = bnd
@@ -505,6 +511,7 @@ functionDeclaration = do
           { defLoc  = loc
           , defName = funcName
           , isDecl  = False
+          , isExtern = False
           , pre
           , post
           , bound = Nothing
@@ -549,7 +556,7 @@ procedureDeclaration = do
   postFrom <- getPosition
   symbolTable %= openScope postFrom
   -- Temporal variables with the initial value of the arguments
-  case params' of 
+  case params' of
     Nothing -> pure ()
     Just params -> forM_ params $ \(name, argType, _{- ArgMode -}) -> do
       symbolTable %= insertSymbol (name <> "'") Entry
@@ -562,7 +569,7 @@ procedureDeclaration = do
   post' <- postcond <!> (postFrom, UnknownError "Missing Postcondition")
   to   <- getPosition
   symbolTable %= closeScope to
-  
+
   let loc = Location (from,to)
   existsDT .= True
   symbolTable %= closeScope to
@@ -572,6 +579,7 @@ procedureDeclaration = do
           { defLoc  = loc
           , defName = procName
           , isDecl  = False
+          , isExtern = False
           , pre
           , post
           , bound = Nothing

@@ -26,19 +26,19 @@ import           Language.Graciela.LLVM.Type
 --------------------------------------------------------------------------------
 import           Data.Sequence                           (ViewL ((:<)), viewl)
 import           Data.Word                               (Word32)
-import qualified LLVM.General.AST.CallingConvention      as CC (CallingConvention (C))
-import qualified LLVM.General.AST.Constant               as C (Constant (Float, Int, Null, Undef))
-import qualified LLVM.General.AST.Float                  as F (SomeFloat (Double))
-import           LLVM.General.AST.FloatingPointPredicate (FloatingPointPredicate (OGT, OLT))
-import           LLVM.General.AST.Instruction            (FastMathFlags (..),
+import qualified LLVM.AST.CallingConvention      as CC (CallingConvention (C))
+import qualified LLVM.AST.Constant               as C (Constant (Float, Int, Null, Undef))
+import qualified LLVM.AST.Float                  as F (SomeFloat (Double))
+import           LLVM.AST.FloatingPointPredicate (FloatingPointPredicate (OGT, OLT))
+import           LLVM.AST.Instruction            (FastMathFlags (..),
                                                           Instruction (..),
                                                           Named (..),
                                                           Terminator (..))
-import           LLVM.General.AST.IntegerPredicate       (IntegerPredicate (..))
-import           LLVM.General.AST.Name                   (Name)
-import           LLVM.General.AST.Operand                (Operand (..))
-import           LLVM.General.AST.Type                   (ptr)
-import qualified LLVM.General.AST.Type                   as LLVM
+import           LLVM.AST.IntegerPredicate       (IntegerPredicate (..))
+import           LLVM.AST.Name                   (Name)
+import           LLVM.AST.Operand                (Operand (..))
+import           LLVM.AST.Type                   (ptr)
+import qualified LLVM.AST.Type                   as LLVM
 import           Prelude                                 hiding (EQ)
 --------------------------------------------------------------------------------
 
@@ -202,31 +202,22 @@ boolQ true false e@Expression { loc = Location (pos, _), E.expType, exp' } = cas
       set   <- expression theSet
       empty <- newLabel "emptySet"
 
-      addInstruction $ empty := Call
-        { tailCallKind = Nothing
-        , callingConvention = CC.C
-        , returnAttributes = []
-        , function = callable (pointerType) $ case setType of
+      let 
+        fName = case setType of
           GSet      _ -> newSetString
           GMultiset _ -> newMultisetString
           GSeq      _ -> newSeqString
-        , arguments = []
-        , functionAttributes = []
-        , metadata = [] }
+       in callFunction fName [] >>= addInstruction . (empty :=)
 
       checkRange <- newLabel "qCheckRange"
-      addInstruction $ checkRange := Call
-            { tailCallKind = Nothing
-            , callingConvention = CC.C
-            , returnAttributes = []
-            , function = callable boolType $ case setType of
-              GSet      _ -> equalSetString
-              GMultiset _ -> equalMultisetString
-              GSeq      _ -> equalSeqString
-            , arguments = (,[]) <$> [set, LocalReference (pointerType) empty]
-            , functionAttributes = []
-            , metadata = [] }
-
+      let 
+        fName = case setType of
+          GSet      _ -> equalSetString
+          GMultiset _ -> equalMultisetString
+          GSeq      _ -> equalSeqString
+        args = [set, LocalReference (pointerType) empty]
+       in callFunction fName args >>= addInstruction . (checkRange :=)
+      
       rangeNotEmpty <- newLabel "qRangeNotEmpty"
       terminate CondBr
         { condition = LocalReference boolType checkRange
@@ -277,17 +268,13 @@ boolQ true false e@Expression { loc = Location (pos, _), E.expType, exp' } = cas
       (getNext #)
 
       nextIterator <- newLabel "qNextIterator"
-      addInstruction $ nextIterator := Call
-        { tailCallKind = Nothing
-        , callingConvention = CC.C
-        , returnAttributes = []
-        , function = callable (ptr iterator) $ case setType of
-              GSet      _ -> nextSetString
-              GMultiset _ -> nextMultisetString
-              GSeq      _ -> nextSequenceString
-        , arguments = [(LocalReference (ptr iterator) iteratorStruct, [])]
-        , functionAttributes = []
-        , metadata = [] }
+      let 
+        fName = case setType of
+          GSet      _ -> nextSetString
+          GMultiset _ -> nextMultisetString
+          GSeq      _ -> nextSequenceString
+        args = [LocalReference (ptr iterator) iteratorStruct]
+      callFunction fName args >>= addInstruction . (nextIterator :=)
 
       l0 <- newUnLabel
       addInstruction $ l0 := ICmp
@@ -910,30 +897,23 @@ quantification e@Expression { loc = Location (pos, _), E.expType, exp' } = case 
         set   <- expression theSet
         empty <- newLabel "emptySet"
 
-        addInstruction $ empty := Call
-          { tailCallKind = Nothing
-          , callingConvention = CC.C
-          , returnAttributes = []
-          , function = callable (pointerType) $ case setType of
+        let 
+          fName = case setType of
             GSet      _ -> newSetString
             GMultiset _ -> newMultisetString
             GSeq      _ -> newSeqString
-          , arguments = []
-          , functionAttributes = []
-          , metadata = [] }
+        callFunction fName [] >>= addInstruction . (empty :=)
+        
 
         checkRange <- newLabel "qCheckRange"
-        addInstruction $ checkRange := Call
-              { tailCallKind = Nothing
-              , callingConvention = CC.C
-              , returnAttributes = []
-              , function = callable boolType $ case setType of
-                GSet      _ -> equalSetString
-                GMultiset _ -> equalMultisetString
-                GSeq      _ -> equalSeqString
-              , arguments = (,[]) <$> [set, LocalReference (pointerType) empty]
-              , functionAttributes = []
-              , metadata = [] }
+        let 
+          fName = case setType of
+            GSet      _ -> equalSetString
+            GMultiset _ -> equalMultisetString
+            GSeq      _ -> equalSeqString
+          args = [set, LocalReference (pointerType) empty]
+        callFunction fName args >>= addInstruction . (checkRange :=)
+
 
         rangeEmpty    <- newLabel " qRangeEmpty"
         rangeNotEmpty <- newLabel "qRangeNotEmpty"
@@ -1077,17 +1057,13 @@ quantification e@Expression { loc = Location (pos, _), E.expType, exp' } = case 
         (getNext #)
 
         nextIterator <- newLabel "qNextIterator"
-        addInstruction $ nextIterator := Call
-          { tailCallKind = Nothing
-          , callingConvention = CC.C
-          , returnAttributes = []
-          , function = callable (ptr iterator) $ case setType of
-                GSet      _ -> nextSetString
-                GMultiset _ -> nextMultisetString
-                GSeq      _ -> nextSequenceString
-          , arguments = [(LocalReference (ptr iterator) iteratorStruct, [])]
-          , functionAttributes = []
-          , metadata = [] }
+        let 
+          fName = case setType of
+            GSet      _ -> nextSetString
+            GMultiset _ -> nextMultisetString
+            GSeq      _ -> nextSequenceString
+          args = [LocalReference (ptr iterator) iteratorStruct]
+        callFunction fName args >>= addInstruction . (nextIterator :=)
 
         l0 <- newUnLabel
         addInstruction $ l0 := ICmp
@@ -1157,30 +1133,23 @@ quantification e@Expression { loc = Location (pos, _), E.expType, exp' } = case 
         set   <- expression theSet
         empty <- newLabel "emptySet"
 
-        addInstruction $ empty := Call
-          { tailCallKind = Nothing
-          , callingConvention = CC.C
-          , returnAttributes = []
-          , function = callable (pointerType) $ case setType of
+        let 
+          fName = case setType of
             GSet      _ -> newSetString
             GMultiset _ -> newMultisetString
             GSeq      _ -> newSeqString
-          , arguments = []
-          , functionAttributes = []
-          , metadata = [] }
+          args = []
+         in callFunction fName args >>= addInstruction . (empty :=)
 
         checkRange <- newLabel "qCheckRange"
-        addInstruction $ checkRange := Call
-              { tailCallKind = Nothing
-              , callingConvention = CC.C
-              , returnAttributes = []
-              , function = callable boolType $ case setType of
+        let 
+          fName = case setType of
                 GSet      _ -> equalSetString
                 GMultiset _ -> equalMultisetString
                 GSeq      _ -> equalSeqString
-              , arguments = (,[]) <$> [set, LocalReference (pointerType) empty]
-              , functionAttributes = []
-              , metadata = [] }
+          args = [set, LocalReference (pointerType) empty]
+         in callFunction fName args >>= addInstruction . (checkRange :=)
+        
 
         rangeEmpty    <- newLabel " qRangeEmpty"
         rangeNotEmpty <- newLabel "qRangeNotEmpty"
@@ -1308,17 +1277,13 @@ quantification e@Expression { loc = Location (pos, _), E.expType, exp' } = case 
         (getNext #)
 
         nextIterator <- newLabel "qNextIterator"
-        addInstruction $ nextIterator := Call
-          { tailCallKind = Nothing
-          , callingConvention = CC.C
-          , returnAttributes = []
-          , function = callable (ptr iterator) $ case setType of
-                GSet      _ -> nextSetString
-                GMultiset _ -> nextMultisetString
-                GSeq      _ -> nextSequenceString
-          , arguments = [(LocalReference (ptr iterator) iteratorStruct, [])]
-          , functionAttributes = []
-          , metadata = [] }
+        let 
+          fName = case setType of
+            GSet      _ -> nextSetString
+            GMultiset _ -> nextMultisetString
+            GSeq      _ -> nextSequenceString
+          args = [LocalReference (ptr iterator) iteratorStruct]
+        callFunction fName args >>= addInstruction . (nextIterator :=)
 
         l0 <- newUnLabel
         addInstruction $ l0 := ICmp
@@ -1559,30 +1524,21 @@ collection e@Expression { loc = Location (pos, _), E.expType, exp' } = case exp'
       set   <- expression theSet'
       emptyS <- newLabel "emptySet"
 
-      addInstruction $ emptyS := Call
-        { tailCallKind = Nothing
-        , callingConvention = CC.C
-        , returnAttributes = []
-        , function = callable (pointerType) $ case setType of
+      let 
+        fName = case setType of
           GSet      _ -> newSetString
           GMultiset _ -> newMultisetString
           GSeq      _ -> newSeqString
-        , arguments = []
-        , functionAttributes = []
-        , metadata = [] }
-
+       in callFunction fName [] >>= addInstruction . (emptyS :=)
+      
       checkRange <- newLabel "qCheckRange"
-      addInstruction $ checkRange := Call
-            { tailCallKind = Nothing
-            , callingConvention = CC.C
-            , returnAttributes = []
-            , function = callable boolType $ case setType of
-              GSet      _ -> equalSetString
-              GMultiset _ -> equalMultisetString
-              GSeq      _ -> equalSeqString
-            , arguments = (,[]) <$> [set, LocalReference (pointerType) emptyS]
-            , functionAttributes = []
-            , metadata = [] }
+      let 
+        fName = case setType of
+          GSet      _ -> equalSetString
+          GMultiset _ -> equalMultisetString
+          GSeq      _ -> equalSeqString
+        args = [set, LocalReference (pointerType) emptyS]
+       in callFunction fName args >>= addInstruction . (checkRange :=)
 
 
       rangeEmpty    <- newLabel "cRangeEmpty"
@@ -1640,17 +1596,13 @@ collection e@Expression { loc = Location (pos, _), E.expType, exp' } = case exp'
 
       (getNext #)
       nextIterator <- newLabel "qNextIterator"
-      addInstruction $ nextIterator := Call
-        { tailCallKind = Nothing
-        , callingConvention = CC.C
-        , returnAttributes = []
-        , function = callable (ptr iterator) $ case setType of
-              GSet      _ -> nextSetString
-              GMultiset _ -> nextMultisetString
-              GSeq      _ -> nextSequenceString
-        , arguments = [(LocalReference (ptr iterator) iteratorStruct, [])]
-        , functionAttributes = []
-        , metadata = [] }
+      let 
+        fName = case setType of
+          GSet      _ -> nextSetString
+          GMultiset _ -> nextMultisetString
+          GSeq      _ -> nextSequenceString
+        args = [LocalReference (ptr iterator) iteratorStruct]
+      callFunction fName args >>= addInstruction . (nextIterator :=)
 
       l0 <- newUnLabel
       addInstruction $ l0 := ICmp
@@ -1697,30 +1649,23 @@ collection e@Expression { loc = Location (pos, _), E.expType, exp' } = case exp'
       t <- toLLVMType expType
       case viewl colElems of
         t' :< _ | E.expType t' =:= GTuple GAny GAny ->
-          addInstruction $ theSet := Call
-            { tailCallKind = Nothing
-            , callingConvention = CC.C
-            , returnAttributes = []
-            , function = callable t $ case colKind of
+          let 
+            fName = case colKind of
               Set      -> newSetPairString
               Multiset -> newMultisetPairString
               Sequence -> newSeqPairString
-            , arguments = []
-            , functionAttributes = []
-            , metadata = [] }
+          
+          in callFunction fName [] >>= addInstruction . (theSet :=)
 
         otherwise ->
-          addInstruction $ theSet := Call
-            { tailCallKind = Nothing
-            , callingConvention = CC.C
-            , returnAttributes = []
-            , function = callable t $ case colKind of
+          let 
+            fName = case colKind of
               Set      -> newSetString
               Multiset -> newMultisetString
               Sequence -> newSeqString
-            , arguments = []
-            , functionAttributes = []
-            , metadata = [] }
+          
+          in callFunction fName [] >>= addInstruction . (theSet :=)
+          
 
       pure $ LocalReference t theSet
 
@@ -1730,17 +1675,14 @@ collection e@Expression { loc = Location (pos, _), E.expType, exp' } = case exp'
         expr' <- expression expr
         t <- toLLVMType expType
 
-        addInstruction $ Do Call
-          { tailCallKind = Nothing
-          , callingConvention = CC.C
-          , returnAttributes = []
-          , function = callable t $ case colKind of
+        let 
+          fName = case colKind of
             Set      -> insertSetPairString
             Multiset -> insertMultisetPairString
             Sequence -> insertSeqPairString
-          , arguments = (,[]) <$> [theSet, expr']
-          , functionAttributes = []
-          , metadata = [] }
+        
+        callFunction fName [theSet, expr'] >>= addInstruction . Do
+        
 
       | otherwise = do
 
@@ -1764,17 +1706,15 @@ collection e@Expression { loc = Location (pos, _), E.expType, exp' } = case exp'
             , type'    = lintType
             , metadata = [] }
 
-        addInstruction $ Do Call
-          { tailCallKind = Nothing
-          , callingConvention = CC.C
-          , returnAttributes = []
-          , function = callable t $ case colKind of
+        let 
+          fName = case colKind of
             Set      -> insertSetString
             Multiset -> insertMultisetString
             Sequence -> insertSeqString
-          , arguments = (,[]) <$> [theSet, LocalReference lintType value]
-          , functionAttributes = []
-          , metadata = [] }
+          args = [theSet, LocalReference lintType value]
+        
+        callFunction fName args >>= addInstruction . Do
+        
 
 firstIterator :: Type -> Type -> LLVM.Type -> Operand -> LLVM (Name, Name)
 firstIterator qVarType setType castType set = do
@@ -1782,17 +1722,14 @@ firstIterator qVarType setType castType set = do
   first          <- newLabel "firstElementPtr"
   firstValue     <- newLabel "firstElementValue"
   cast           <- newLabel "castFirstElement"
-  addInstruction $ iteratorStruct  := Call
-    { tailCallKind = Nothing
-    , callingConvention = CC.C
-    , returnAttributes = []
-    , function = callable (ptr iterator) $ case setType of
-          GSet      _ -> firstSetString
-          GMultiset _ -> firstMultisetString
-          GSeq      _ -> firstSequenceString
-    , arguments = [(set,[])]
-    , functionAttributes = []
-    , metadata = [] }
+  let 
+    fName = case setType of
+      GSet      _ -> firstSetString
+      GMultiset _ -> firstMultisetString
+      GSeq      _ -> firstSequenceString
+
+  callFunction fName [set] >>= addInstruction . (iteratorStruct  :=)
+  
 
   addInstruction $ first := GetElementPtr
     { inBounds = False

@@ -79,7 +79,7 @@ import           Language.Graciela.AST.Type      (Type)
 import           Language.Graciela.Common
 import           Language.Graciela.Error
 import           Language.Graciela.Parser.Config (Config (..), defaultConfig)
-import           Language.Graciela.Parser.Prim   ()
+import           Language.Graciela.Parser.Stream
 import           Language.Graciela.Parser.State  hiding (State)
 import qualified Language.Graciela.Parser.State  as Parser (State)
 import           Language.Graciela.Token         (Token (..), TokenPos (..))
@@ -103,14 +103,13 @@ import           Data.Sequence                   (Seq, (<|), (|>))
 import qualified Data.Sequence                   as Seq (empty, singleton)
 import qualified Data.Set                        as Set (empty, singleton)
 import           Data.Text                       (Text)
-import           Text.Megaparsec                 (ErrorItem (..),
-                                                  ParseError (..), ParsecT,
-                                                  between, getPosition,
+import           Text.Megaparsec                 (ParsecT, between, getPosition,
                                                   lookAhead, manyTill,
                                                   withRecovery, (<|>))
 import qualified Text.Megaparsec                 as Mega (runParserT)
-import           Text.Megaparsec.Error           (parseErrorTextPretty)
-import           Text.Megaparsec.Prim            (MonadParsec (..))
+import           Text.Megaparsec.Error           (ErrorItem(..), ParseError(..),
+                                                  ErrorFancy(..), parseErrorTextPretty)
+import           Text.Megaparsec                 (MonadParsec (..))
 --------------------------------------------------------------------------------
 
 -- | Graciela Parser monad transformer.
@@ -235,7 +234,8 @@ instance MonadParser g => MonadParser (StateT s g) where
 pPutError :: Monad m => SourcePos -> Error -> ParserT m ()
 pPutError from e = ParserT $ do
   let
-    err = ParseError (NE.fromList [from]) Set.empty Set.empty (Set.singleton e)
+    errFancy = ErrorCustom e 
+    err = FancyError (NE.fromList [from]) (Set.singleton errFancy)
   errors %= (|> err)
 
 pGetType :: (Monad m)
@@ -270,24 +270,15 @@ pSatisfy' f = token test Nothing
     test tp @ TokenPos { tok } =
       if f tok
         then Right tp
-        else Left . unex $ tp
-    unex = (, Set.empty, Set.empty) . Set.singleton . Tokens . (:|[])
+        else Left (pure (Tokens (tp:|[])), Set.empty)
 
 pMatch' :: Monad m
-         => Token-> ParserT m Location
-pMatch' t = withRecovery recover (match t)
+        => Token -> ParserT m Location
+pMatch' t = withRecovery (recover) (match t)
   where
     recover e = do
-      pos <- getPosition
-      -- Modify the error, so it knows the expected token (there is obviously a better way, IDK right now)
-      let
-        from :| _ = errorPos e
-        expected  = Set.singleton . Tokens . NE.fromList $ [TokenPos from from t]
-        loc       = Location (pos, pos)
-
-      errors %= (|> e { errorExpected = expected } )
-
-      pure loc
+      errors %= (|> e )
+      getPosition >>= \p -> pure $ Location (p, p)
 --------------------------------------------------------------------------------
 
 satisfy :: MonadParser m
@@ -366,19 +357,20 @@ safeIdentifier = withRecovery recover (Just <$> identifier)
     recover e = do
       pos <- getPosition
       let 
-        set = errorUnexpected e 
-        t   = toList set
-        len = length t
+        t = case e of 
+            TrivialError _ unexpected _ -> unexpected
+            _ -> Nothing
       putError pos . UnknownError $
         "An identifier was expected but none was given.\n\t" <> 
-        if len == 0  then "" 
-        else if len == 1 then "Instead, " <> getToken (head t) <> " was found."
-        else "WTF?"
+        if isNothing t then "" 
+        else "Instead, " <> getToken t <> " was found."
 
       pure Nothing
-    getToken EndOfInput = ""
-    getToken (Label  (c :| _)) = show c
-    getToken (Tokens (t :| _)) = show t
+    getToken Nothing = ""
+    getToken (Just e) = case e of 
+     EndOfInput     -> ""
+     Label  (c :| _) -> show c
+     Tokens (t :| _) -> show t
 
 -- | Match an identifier and return both its name and location
 identifierAndLoc :: MonadParser m

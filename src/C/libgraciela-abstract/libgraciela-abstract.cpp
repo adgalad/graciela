@@ -932,6 +932,7 @@ extern "C" {
       TrashCollector tc = (*_stack)[_stack->size()-1];
       _stack->pop_back();
       for (TrashCollector::iterator it = tc.begin(); it != tc.end(); ++it){
+          // printf("Free MEM -> %p %d \n",  it->first, it->second);
           switch (it->second) {
               case SET: {
                   _freeSet(it->first);
@@ -983,7 +984,11 @@ extern "C" {
       {
           _closeScope();
       }
-
+      for (set<int8_t*>::iterator it = dynMemSet.begin(); it != dynMemSet.end(); ++it){
+        // printf("Free Leaks -> %p\n", *it);
+        free(*it);
+      }
+      dynMemSet.clear();
       delete (_stack);
   }
 }
@@ -992,11 +997,12 @@ extern "C" {
 /* Dynamic Memory Verifications */
 void _addPointer(int8_t* ptr){
   dynMemSet.insert(ptr);
-  // printf(">>%p\n", ptr);
+  // printf("Add -> %p\n", ptr);
 }
 
 void _removePointer(int8_t* ptr, char* filePath, int l, int c){
   set<int8_t*>::iterator p = dynMemSet.find(ptr);
+  // printf("Remove -> %p\n", ptr);
   if ( p == dynMemSet.end()) {
     abortAbstract(A_REMOVE_POINTER, filePath, l, c);
     exit(EXIT_FAILURE);
@@ -1016,10 +1022,10 @@ void _derefPointer(int8_t* ptr, int p, char* filePath, int l, int c){
   }
 }
 
-char *_readln(int **i){
+char *_readln(int *i){
   std::string str;
   std::getline(std::cin, str);
-  **i = str.size();
+  *i = str.size();
   char *cstr = (char*) malloc(str.length() + 1);
   strcpy(cstr, str.c_str());
   _addPointer((int8_t*)cstr); 

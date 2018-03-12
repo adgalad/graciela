@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
 
 module Language.Graciela.LLVM.Monad where
@@ -6,6 +7,7 @@ module Language.Graciela.LLVM.Monad where
 import           Language.Graciela.Common
 import           Language.Graciela.LLVM.State     hiding (State)
 import qualified Language.Graciela.LLVM.State     as LLVM (State)
+import {-# SOURCE #-} Language.Graciela.LLVM.Type      (llvmFunT)
 --------------------------------------------------------------------------------
 
 import           Control.Lens                     (at, ix, use, (%=), (+=),
@@ -14,20 +16,23 @@ import           Control.Monad.State.Class        (MonadState)
 import           Control.Monad.Trans.State.Strict (State)
 import           Data.Foldable                    (toList)
 import           Data.Array                       ((!))
-import qualified Data.Map.Strict                  as Map (empty, insert, lookup)
+import qualified Data.Map.Strict                  as Map (empty, insert, lookup, toList)
 import           Data.Maybe                       (fromMaybe)
 import           Data.Sequence                    (Seq, (|>))
 import qualified Data.Sequence                    as Seq
 import           Data.Text                        (Text, unpack)
 import           Data.Word                        (Word32)
-import           LLVM.General.AST                 (BasicBlock (..))
-import qualified LLVM.General.AST                 as LLVM (Definition (..))
-import           LLVM.General.AST.Constant        (Constant (GlobalReference))
-import           LLVM.General.AST.Instruction     (Named (..), Terminator (..))
-import qualified LLVM.General.AST.Instruction     as LLVM (Instruction (..))
-import           LLVM.General.AST.Name            (Name (..))
-import           LLVM.General.AST.Operand         (Operand (ConstantOperand))
-import           LLVM.General.AST.Type            (Type)
+import           LLVM.AST                         (BasicBlock (..))
+import qualified LLVM.AST                         as LLVM (Definition (..))
+import qualified LLVM.AST.Global                  as LLVM (Global (..), Parameter(..))
+import qualified LLVM.AST.CallingConvention       as CC (CallingConvention (C))
+import           LLVM.AST.Constant                (Constant (GlobalReference))
+import           LLVM.AST.Instruction             (Named (..), Terminator (..))
+import qualified LLVM.AST.Instruction             as LLVM (Instruction)
+import           LLVM.AST.Instruction             (Instruction (..))
+import           LLVM.AST.Name                    (Name(UnName), mkName)
+import           LLVM.AST.Operand                 (Operand (ConstantOperand))
+import           LLVM.AST.Type                    (Type)
 --------------------------------------------------------------------------------
 
 type Inst  = Named LLVM.Instruction
@@ -46,7 +51,7 @@ getVariableName :: Text -> LLVM Name
 getVariableName name =
   getVariableName' <$> use symTable
   where
-    getVariableName' [] =  Name "Error" --error
+    getVariableName' [] =  mkName "Error" --error
       -- "internal error: undefined variable `" <> unpack name <> "`."
 
     getVariableName' (vars:xs) =
@@ -69,12 +74,25 @@ insertVar text = do
 --------------------------------------------------------------------------------
 
 addDefinitions :: [LLVM.Definition] -> LLVM ()
-addDefinitions defs =
-  moduleDefs %= (<> Seq.fromList defs)
+addDefinitions defs = forM_ defs addDefinition
 
 addDefinition :: LLVM.Definition -> LLVM ()
-addDefinition defs =
+addDefinition defs = do
+  case defs of 
+    LLVM.GlobalDefinition (f@LLVM.Function{}) ->
+        let 
+          retType    = LLVM.returnType f
+          fName      = LLVM.name f
+          params     = (\(p,_) -> p) $ LLVM.parameters f
+          paramTypes = fmap (\(LLVM.Parameter t _ _) -> t) params
+          funType    = llvmFunT retType paramTypes
+        in functionsTypes %= Map.insert fName funType
+
+    _ -> pure ()
   moduleDefs %= (|> defs)
+
+
+
 
 addInstructions :: Insts -> LLVM ()
 addInstructions insts =
@@ -120,10 +138,10 @@ newLabel label = do
   case label `Map.lookup` ns of
     Nothing -> do
       nameSupply . at label ?= 1
-      pure . Name $ "." <> label
+      pure . mkName $ "." <> label
     Just i  -> do
       nameSupply . ix label %= succ
-      pure . Name $ "." <> label <> "." <> show i
+      pure . mkName $ "." <> label <> "." <> show i
 
 newUnLabel :: LLVM Name
 newUnLabel = UnName <$> (unnameSupply <<+= 1)
@@ -137,7 +155,32 @@ getFilePathOperand filePath = use stringIds >>= pure . Map.lookup (pack filePath
 --------------------------------------------------------------------------------
 
 callable :: Type -> String -> Either a Operand
-callable t = Right . ConstantOperand . GlobalReference t . Name
+callable t = Right . ConstantOperand . GlobalReference t . mkName
+
+callFunction :: String -> [Operand] -> LLVM Instruction
+callFunction name args = do 
+  let 
+    fName'  = mkName name
+    fName'' = mkName $ tail name
+  f <- use functionsTypes 
+  let
+    (funT', fName) = if isNothing (Map.lookup fName' f)
+      then (Map.lookup fName'' f, fName'')
+      else (Map.lookup fName'  f, fName')
+
+  case funT' of
+    Nothing -> internal $ "Function " <> name <> " doesn't exists"
+    Just funT -> do 
+      pure Call
+        { tailCallKind       = Nothing
+        , callingConvention  = CC.C
+        , returnAttributes   = []
+        , function           = callable' funT fName
+        , arguments          = (,[]) <$> args
+        , functionAttributes = []
+        , metadata           = [] }
+  where 
+    callable' t = Right . ConstantOperand . GlobalReference t
 
 
 firstSetString = "_firstSet"

@@ -16,7 +16,7 @@
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
 # resolver: lts-7.16
-resolver: lts-6.27
+resolver: nightly-2017-11-24
 
 local-bin-path: .
 
@@ -38,15 +38,14 @@ local-bin-path: .
 # A package marked 'extra-dep: true' will only be built if demanded by a
 # non-dependency (i.e. a user package), and its test suites and benchmarks
 # will not be run. This is useful for tweaking upstream packages.
-packages: 
-  - .
-  - location:
-      git: https://github.com/bscarlet/llvm-general/
-      commit: 761dfac2ed082ad4e7083ffb63e4f8b967c8f911
-    subdirs:
-    - llvm-general
-    - llvm-general-pure
-    extra-dep: true
+# packages: 
+#   - .
+#   - location:
+#       git: https://github.com/bscarlet/llvm-general/
+#       commit: 761dfac2ed082ad4e7083ffb63e4f8b967c8f911
+#     subdirs:
+    
+#     extra-dep: true
 
 # The following packages have been ignored due to incompatibility with the
 # resolver compiler, dependency conflicts with other packages
@@ -56,12 +55,17 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps: 
-  - megaparsec-5.1.2
+  - llvm-hs-5.1.0
+  - llvm-hs-pure-5.1.0
+  - megaparsec-6.2.0
+  - cereal-text-0.1.0.2
+  - parser-combinators-0.2.0
 
 # Override default flag values for local packages and extra-deps
 flags: 
-  llvm-general:
+  llvm-hs:
     shared-llvm: true
+    debug: true
 
 # Extra package databases containing global packages
 extra-package-dbs: []

@@ -42,7 +42,7 @@ build-type:          Simple
 -- extra-source-files:  README.md
 
 -- Constraint on the version of Cabal needed to build this package.
-cabal-version:       >=1.10
+cabal-version:       >= 1.10
 
 executable graciela
     -- .hs or .lhs file containing the Main module.
@@ -50,6 +50,17 @@ executable graciela
 
     other-modules:
         Language.Graciela
+        Language.Graciela.Common
+        Language.Graciela.Entry
+        Language.Graciela.Error
+        Language.Graciela.Lexer
+        Language.Graciela.Location
+        Language.Graciela.OS
+        Language.Graciela.Pragma
+        Language.Graciela.SymbolTable
+        Language.Graciela.Token
+        Language.Graciela.Treelike
+
         Language.Graciela.AST.Declaration
         Language.Graciela.AST.Definition
         Language.Graciela.AST.Enumeration
@@ -60,9 +71,7 @@ executable graciela
         Language.Graciela.AST.Program
         Language.Graciela.AST.Struct
         Language.Graciela.AST.Type
-        Language.Graciela.Common
-        Language.Graciela.Entry
-        Language.Graciela.Error
+
         Language.Graciela.LLVM.Abort
         Language.Graciela.LLVM.Boolean
         Language.Graciela.LLVM.Declaration
@@ -77,9 +86,7 @@ executable graciela
         Language.Graciela.LLVM.Struct
         Language.Graciela.LLVM.Type
         Language.Graciela.LLVM.Warning
-        Language.Graciela.Lexer
-        Language.Graciela.Location
-        Language.Graciela.OS
+        
         Language.Graciela.Parser.Alias
         Language.Graciela.Parser.Assertion
         Language.Graciela.Parser.Config
@@ -92,15 +99,11 @@ executable graciela
         Language.Graciela.Parser.Monad
         Language.Graciela.Parser.Module
         Language.Graciela.Parser.Operator
-        Language.Graciela.Parser.Prim
+        Language.Graciela.Parser.Stream
         Language.Graciela.Parser.Program
         Language.Graciela.Parser.State
         Language.Graciela.Parser.Struct
         Language.Graciela.Parser.Type
-        Language.Graciela.Pragma
-        Language.Graciela.SymbolTable
-        Language.Graciela.Token
-        Language.Graciela.Treelike
 
     
     ghc-options: 
@@ -116,23 +119,30 @@ executable graciela
 
     -- Other library packages from which modules are imported.
     build-depends:
-          array             >= 0.5  && < 0.6
-        , base              >= 4.8  && < 4.9
+        array             >= 0.5  && < 0.6
+    --    , base              >= 4.8  && < 4.9
+        , base              >= 4.10  && < 4.11
         , bytestring        >= 0.10 && < 0.11
         , containers        >= 0.5  && < 0.6
-        , directory         >= 1.2  && < 1.3
+    --    , directory         >= 1.2  && < 1.3
+        , directory         >= 1.3  && < 1.4
         , filepath          >= 1.4  && < 1.5
-        , lens              >= 4.13 && < 4.15
-        , llvm-general      >= 3.5  && < 3.6
-        , llvm-general-pure >= 3.5  && < 3.6
-        , megaparsec        >= 5.3  && < 5.4
+    --    , lens              >= 4.13 && < 4.15
+        , lens              >= 4.15 && < 4.16
+        , llvm-hs           >= 5.1  && < 5.2
+        , llvm-hs-pure      >= 5.1  && < 5.2
+        , megaparsec        >= 6.2  && < 6.3
         , mtl               >= 2.2  && < 2.3
-        , process           >= 1.2  && < 1.3
+    --    , process           >= 1.2  && < 1.3
+        , process           >= 1.6  && < 1.7
         , semigroups        >= 0.18 && < 0.19
         , text              >= 1.2  && < 1.3
-        , transformers      >= 0.4  && < 0.5
+    --    , transformers      >= 0.4  && < 0.5
+        , transformers      >= 0.5  && < 0.6
         , cereal            >= 0.5  && < 0.6
         , cereal-text       >= 0.1  && < 0.2
+        , parser-combinators >= 0.2 && < 0.3
+
 
     -- Directories containing source files.
     hs-source-dirs: src/Haskell
@@ -146,32 +156,44 @@ Test-Suite test-graciela
     main-is:          Test.hs
     default-language: Haskell2010
     build-depends: 
-          array             >= 0.5  && < 0.6
-        , base              >= 4.8  && < 4.9
+        array             >= 0.5  && < 0.6
+        , base              >= 4.10  && < 4.11
         , bytestring        >= 0.10 && < 0.11
         , containers        >= 0.5  && < 0.6
-        , directory         >= 1.2  && < 1.3
+        , directory         >= 1.3  && < 1.4
         , filepath          >= 1.4  && < 1.5
-        , lens              >= 4.13 && < 4.15
-        , llvm-general      >= 3.5  && < 3.6
-        , llvm-general-pure >= 3.5  && < 3.6
-        , megaparsec        >= 5.3  && < 5.4
+        , lens              >= 4.15 && < 4.16
+        , llvm-hs           >= 5.1  && < 5.2
+        , llvm-hs-pure      >= 5.1  && < 5.2
+        , megaparsec        >= 6.2  && < 6.3
         , mtl               >= 2.2  && < 2.3
-        , process           >= 1.2  && < 1.3
+        , process           >= 1.6  && < 1.7
         , semigroups        >= 0.18 && < 0.19
         , text              >= 1.2  && < 1.3
-        , transformers      >= 0.4  && < 0.5
+        , transformers      >= 0.5  && < 0.6
         , cereal            >= 0.5  && < 0.6
         , cereal-text       >= 0.1  && < 0.2
+        , parser-combinators >= 0.2 && < 0.3
 
         , temporary         >= 1.2
-        , QuickCheck        >= 2.8
-        , HUnit             >= 1.3  && < 1.7
+        , QuickCheck        >= 2.10
+        , HUnit             >= 1.6
         
     other-modules:
         Cola.Cola
         Shared
         Language.Graciela
+        Language.Graciela.Common
+        Language.Graciela.Entry
+        Language.Graciela.Error
+        Language.Graciela.Lexer
+        Language.Graciela.Location
+        Language.Graciela.OS
+        Language.Graciela.Pragma
+        Language.Graciela.SymbolTable
+        Language.Graciela.Token
+        Language.Graciela.Treelike
+
         Language.Graciela.AST.Declaration
         Language.Graciela.AST.Definition
         Language.Graciela.AST.Enumeration
@@ -182,9 +204,7 @@ Test-Suite test-graciela
         Language.Graciela.AST.Program
         Language.Graciela.AST.Struct
         Language.Graciela.AST.Type
-        Language.Graciela.Common
-        Language.Graciela.Entry
-        Language.Graciela.Error
+
         Language.Graciela.LLVM.Abort
         Language.Graciela.LLVM.Boolean
         Language.Graciela.LLVM.Declaration
@@ -199,27 +219,22 @@ Test-Suite test-graciela
         Language.Graciela.LLVM.Struct
         Language.Graciela.LLVM.Type
         Language.Graciela.LLVM.Warning
-        Language.Graciela.Lexer
-        Language.Graciela.Location
-        Language.Graciela.OS
+        
         Language.Graciela.Parser.Alias
         Language.Graciela.Parser.Assertion
         Language.Graciela.Parser.Config
         Language.Graciela.Parser.Declaration
         Language.Graciela.Parser.Definition
-        Language.Graciela.Parser.Enumeration
         Language.Graciela.Parser.ExprM
+        Language.Graciela.Parser.Enumeration
         Language.Graciela.Parser.Expression
         Language.Graciela.Parser.Instruction
         Language.Graciela.Parser.Monad
         Language.Graciela.Parser.Module
         Language.Graciela.Parser.Operator
-        Language.Graciela.Parser.Prim
+        Language.Graciela.Parser.Stream
         Language.Graciela.Parser.Program
         Language.Graciela.Parser.State
         Language.Graciela.Parser.Struct
         Language.Graciela.Parser.Type
-        Language.Graciela.Pragma
-        Language.Graciela.SymbolTable
-        Language.Graciela.Token
-        Language.Graciela.Treelike
+

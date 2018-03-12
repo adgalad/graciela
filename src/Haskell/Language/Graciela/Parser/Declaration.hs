@@ -40,7 +40,6 @@ import           Data.Sequence                       (Seq, (|>))
 import qualified Data.Sequence                       as Seq (empty, fromList,
                                                              null, zip)
 import           Data.Text                           (Text, unpack)
-import           Prelude                             hiding (lookup)
 import           Text.Megaparsec                     (getPosition, lookAhead,
                                                       notFollowedBy, optional,
                                                       try, (<|>))
@@ -67,14 +66,13 @@ declaration' isStruct = do
     if f
       then match' TokLet $> False
       else match TokConst $> True <|> match TokVar $> False
-
   from <- getPosition
 
   ids <- identifierAndLoc `sepBy1` match TokComma
   mvals <- if isConst then assignment' else assignment
   forM_ ids $ \(name, Location (fromID,_)) -> do
     let good = foldl (\a b -> a && (b /= '\'')) True (unpack name)
-    when (not good) . putError fromID . UnknownError $ 
+    unless good . putError fromID . UnknownError $
       "Ilegal character `'` in variable name: " <> unpack name
 
   match TokColon
@@ -96,7 +94,7 @@ declaration' isStruct = do
       putError from . UnknownError $
         "Attempting to declare " <> f' (toList ids) <>
         ",\n\twith a recursive type " <> show t <>
-        ".\n\tPerhaps you want to declare a " <> (show $ GPointer t)
+        ".\n\tPerhaps you want to declare a " <> show (GPointer t)
     _ -> pure ()
 
   let
@@ -132,7 +130,7 @@ declaration' isStruct = do
           , declType = t
           , declIds  = fst <$> ids }
 
-      Just Nothing  -> do
+      Just Nothing  ->
         pure Nothing
         -- Values were either mandatory or optional, and were given, but
         -- had errors. No more errors are given.
@@ -243,22 +241,22 @@ redefinition (varName, Location (from, _)) = do
       putError from . UnknownError $
          "Redefinition of variable `" <> unpack varName <> "`"
       pure True
-    else do
-      maybeStruct <- use currentStruct
-      case maybeStruct of
-        Just (GDataType _ (Just abstName) _, _, _, _, _) -> do
-          adt <- getStruct abstName
-          case adt of
-            Just abst -> do
-              if isLocal varName . structSt $ abst
-                then do
-                  -- putError from . UnknownError $
-                  --   "Redefinition of variable `" <> unpack varName <>
-                  --   "`. Was defined in Abstract Type `" <> unpack abstName <> "`"
-                  pure False --
-                else pure False
-            _ -> pure False
-        _ -> pure False
+    else pure False
+      -- maybeStruct <- use currentStruct
+      -- case maybeStruct of
+      --   Just (GDataType _ (Just abstName) _, _, _, _, _) -> do
+      --     adt <- getStruct abstName
+      --     case adt of
+      --       Just abst ->
+      --         if isLocal varName . structSt $ abst
+      --           then
+      --             putError from . UnknownError $
+      --               "Redefinition of variable `" <> unpack varName <>
+      --               "`. Was defined in Abstract Type `" <> unpack abstName <> "`"
+      --             pure False --
+      --           else pure False
+      --       _ -> pure False
+      --   _ -> pure False
 
 
 
@@ -282,7 +280,7 @@ info' isStruct pos name t expr constness = if isStruct
             "Redefinition of member `" <> unpack name <> "` as " <> aux constness <>
             ",\n\tbut defined in abstract type as " <> aux c <> "."
 
-        | t =:= highLevel -> do
+        | t =:= highLevel ->
           putError pos . UnknownError $
             "Redefinition of member `" <> unpack name <> "` already defined in abstract type."
 

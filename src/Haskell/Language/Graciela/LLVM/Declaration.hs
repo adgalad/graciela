@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TupleSections  #-}
 {-# LANGUAGE PostfixOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Language.Graciela.LLVM.Declaration
   ( declaration
@@ -28,17 +29,17 @@ import qualified Data.Sequence                      as Seq (empty, fromList,
                                                             singleton)
 import           Data.Text                          (Text, unpack)
 import           Data.Word
-import qualified LLVM.General.AST.CallingConvention as CC (CallingConvention (C))
-import qualified LLVM.General.AST.Constant          as C (Constant (..))
-import qualified LLVM.General.AST.Float             as LLVM (SomeFloat (Double))
-import           LLVM.General.AST.IntegerPredicate  (IntegerPredicate (..))
-import           LLVM.General.AST.Instruction       (Instruction (..),
+import qualified LLVM.AST.CallingConvention as CC (CallingConvention (C))
+import qualified LLVM.AST.Constant          as C (Constant (..))
+import qualified LLVM.AST.Float             as LLVM (SomeFloat (Double))
+import           LLVM.AST.IntegerPredicate  (IntegerPredicate (..))
+import           LLVM.AST.Instruction       (Instruction (..),
                                                       Named (..),
                                                       Terminator (..))
-import           LLVM.General.AST.Name              (Name (..))
-import           LLVM.General.AST.Operand           (CallableOperand,
+import           LLVM.AST.Name              (Name (..))
+import           LLVM.AST.Operand           (CallableOperand,
                                                      Operand (..))
-import           LLVM.General.AST.Type              (Type (..), ptr)
+import           LLVM.AST.Type              (Type (..), ptr)
 --------------------------------------------------------------------------------
 
 declaration :: Declaration -> LLVM ()
@@ -246,7 +247,7 @@ alloc gtype lval = do
       t' <- mapM fill (toList typeArgs)
       types' <- mapM toLLVMType t'
       let
-        name'  = llvmName typeName t'
+        name'  = llvmName ("init" <> typeName) t'
       cast <- newLabel "cast"
 
       addInstruction $ cast := BitCast
@@ -257,14 +258,10 @@ alloc gtype lval = do
       let
         structArg = LocalReference (ptr t) cast
         dinamicAllocFlag = constantOperand GBool . Left $ 0
-      addInstruction $ Do Call
-        { tailCallKind       = Nothing
-        , callingConvention  = CC.C
-        , returnAttributes   = []
-        , function           = callable voidType $ "init" <> name'
-        , arguments          = (,[]) <$> [structArg, dinamicAllocFlag]
-        , functionAttributes = []
-        , metadata           = [] }
+        args = [structArg, dinamicAllocFlag]
+
+      callFunction name' args >>= addInstruction . Do
+       
   case gtype of
     GDataType { typeName, dtTypeArgs } -> doDTInit typeName dtTypeArgs
     GAlias _ GDataType { typeName, dtTypeArgs } -> doDTInit typeName dtTypeArgs

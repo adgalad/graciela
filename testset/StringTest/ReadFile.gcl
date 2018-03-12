@@ -39,23 +39,22 @@ begin
     {post list.size == list'.size + 1 /\ list.elems[list.size-1] == e post}
     |[ 
       if list.max_size == 0 -> 
-
-        malloc (list.m, 2, list.elems);
-        list.max_size := 2;
+          malloc (list.m, 2, list.elems);
+          list.max_size := 2;
       [] list.size == list.max_size -> 
-        var aux : T*;
-        var i := 0 : int;
+          var aux : T*;
+          var i := 0 : int;
 
-        list.max_size := list.max_size * 2;
-        malloc(list.m, list.max_size, aux);
-        {inv true inv}
-        {bound list.size - i bound}
-        do i < list.size ->
-          aux[i] := list.elems[i];
-          i := i+1;
-        od;
-        free(list.elems);
-        list.elems := aux
+          list.max_size := list.max_size * 2;
+          malloc(list.m, list.max_size, aux);
+          {inv true inv}
+          {bound list.size - i bound}
+          do i < list.size ->
+            aux[i] := list.elems[i];
+            i := i+1;
+          od;
+          free(list.elems);
+          list.elems := aux
       [] otherwise -> skip
       fi;
       list.elems[list.size] := e;

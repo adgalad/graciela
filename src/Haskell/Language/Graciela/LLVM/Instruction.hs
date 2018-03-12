@@ -30,28 +30,26 @@ import           Language.Graciela.LLVM.Type
 import           Language.Graciela.LLVM.Warning     (warn)
 import qualified Language.Graciela.LLVM.Warning     as Warning (Warning (Manual))
 --------------------------------------------------------------------------------
-import           Control.Lens                       (use, (%=), (-=), (.=))
-import           Data.Maybe                         (fromMaybe)
-import           Data.Sequence                      (ViewR ((:>)))
-import qualified Data.Sequence                      as Seq (empty, fromList,
-                                                            singleton, viewr,
-                                                            zip, (|>))
-import           Data.Text                          (Text)
+import           Control.Lens               (use, (%=), (-=), (.=))
+import           Data.Maybe                 (fromMaybe)
+import           Data.Sequence              (ViewR ((:>)))
+import qualified Data.Sequence              as Seq (empty, fromList,
+                                                    singleton, viewr,
+                                                    zip, (|>))
+import           Data.Text                  (Text)
 import           Data.Word
-import           LLVM.General.AST                   (BasicBlock (..))
-import           LLVM.General.AST.AddrSpace
-import qualified LLVM.General.AST.CallingConvention as CC (CallingConvention (C))
-import qualified LLVM.General.AST.Constant          as C (Constant (..))
-import           LLVM.General.AST.Instruction       (FastMathFlags (..),
-                                                     Instruction (..),
-                                                     Named (..),
-                                                     Terminator (..))
-import qualified LLVM.General.AST.Instruction       as LLVM (Instruction)
-import           LLVM.General.AST.IntegerPredicate  (IntegerPredicate (..))
-import           LLVM.General.AST.Name              (Name (..))
-import           LLVM.General.AST.Operand           (MetadataNode(..) ,CallableOperand, 
+import           LLVM.AST                   (BasicBlock (..))
+import           LLVM.AST.AddrSpace
+import qualified LLVM.AST.CallingConvention as CC (CallingConvention (C))
+import qualified LLVM.AST.Constant          as C (Constant (..))
+import           LLVM.AST.Instruction       (FastMathFlags (..),Instruction (..),
+                                             Named (..), Terminator (..))
+import qualified LLVM.AST.Instruction       as LLVM (Instruction)
+import           LLVM.AST.IntegerPredicate  (IntegerPredicate (..))
+import           LLVM.AST.Name              (Name, mkName)
+import           LLVM.AST.Operand           (MetadataNode(..) ,CallableOperand, 
                                                      Operand (..))
-import           LLVM.General.AST.Type              hiding (void)
+import           LLVM.AST.Type              hiding (void)
 --------------------------------------------------------------------------------
 
 guard :: Name -> Name -> Guard -> LLVM Name
@@ -141,18 +139,9 @@ copyArray t@GArray{dimensions, innerType} sourceHeader destHeader = do
     { operand0 = LocalReference (ptr type') loadDestArray
     , type'    = pointerType
     , metadata = [] }
-
-  addInstruction $ Do Call
-    { tailCallKind       = Nothing
-    , callingConvention  = CC.C
-    , returnAttributes   = []
-    , function           = callable voidType copyArrayString
-    , arguments          = (,[]) <$> [ sizeOp
-                                     , LocalReference (ptr inner) sourceArray
-                                     , LocalReference (ptr inner) destArray
-                                     , sizeT ]
-    , functionAttributes = []
-    , metadata           = [] }
+  let args = [ sizeOp, LocalReference (ptr inner) sourceArray
+             , LocalReference (ptr inner) destArray, sizeT ]
+  callFunction copyArrayString args >>= addInstruction . Do
 
 
 instruction :: G.Instruction -> LLVM ()
@@ -232,18 +221,11 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
       G.Declaration {G.declType, G.declIds} -> 
         let 
           aux typeName typeArgs = do
-            let fName = "destroy" <> llvmName typeName (toList typeArgs)
+            let fName = llvmName ("destroy" <> typeName) (toList typeArgs)
             forM_ declIds $ \vName -> do
               name <- getVariableName vName
+              callFunction fName [LocalReference pointerType name] >>= addInstruction . Do
 
-              addInstruction $ Do Call
-                { tailCallKind       = Nothing
-                , callingConvention  = CC.C
-                , returnAttributes   = []
-                , function           = callable voidType fName
-                , arguments          = [(LocalReference pointerType name, [])]
-                , functionAttributes = []
-                , metadata = [] }
         in case declType of 
           GDataType{typeName, dtTypeArgs} -> aux typeName dtTypeArgs
           GAlias _ GDataType{typeName, dtTypeArgs} -> aux typeName dtTypeArgs
@@ -259,30 +241,22 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
   ProcedureCall { pName, pArgs, pStructArgs, pRecursiveCall, pRecursiveProc = prp } -> do
     args <- toList <$> mapM createArg pArgs
 
-    pName' <- case pStructArgs of
+    pName' <- ('$':) <$> case pStructArgs of
       Just (structBaseName, typeArgs) -> do
         t' <- mapM fill (toList typeArgs)
-        pure . ('$':) $ llvmName (pName <> pack "-" <> structBaseName) t'
-
-      _ -> pure . ('$':) . unpack $ pName
+        pure $ llvmName (pName <> pack "-" <> structBaseName) t'
+      _ -> pure . unpack $ pName
     asserts <- use evalAssertions
-    recArgs <- fmap (,[]) <$> if pRecursiveCall && asserts 
-        then do
-          use boundOp >>= pure . \case 
-            Nothing -> []
-            Just boundOperand -> [constantOperand GBool . Left $ 1, boundOperand]
-        else if prp && asserts
-          then pure [constantOperand GBool . Left $ 0, constantOperand GInt . Left $0]
+    recArgs <- if pRecursiveCall && asserts 
+      then do
+        use boundOp >>= pure . \case 
+          Nothing -> []
+          Just boundOperand -> [constantOperand GBool . Left $ 1, boundOperand]
+      else if prp && asserts then 
+        pure [constantOperand GBool . Left $ 0, constantOperand GInt . Left $0]
       else pure []
 
-    addInstruction $ Do Call
-      { tailCallKind       = Nothing
-      , callingConvention  = CC.C
-      , returnAttributes   = []
-      , function           = callable voidType pName'
-      , arguments          = recArgs <> args
-      , functionAttributes = []
-      , metadata           = [] }
+    callFunction pName' (recArgs <> args) >>= addInstruction . Do
 
     zipWithM_ copyOutArgs (toList pArgs) args
 
@@ -301,8 +275,8 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
          Variable{ name } -> name <> "_"
          o                -> objectName (O.inner o)
 
-      copyOutArgs :: (Expression, ArgMode) -> (Operand,[t]) -> LLVM ()
-      copyOutArgs (e@Expression{expType, exp'}, mode) (operand, _) = do
+      copyOutArgs :: (Expression, ArgMode) -> Operand -> LLVM ()
+      copyOutArgs (e@Expression{expType, exp'}, mode) operand = do
         if mode `elem` [InOut, Out]
           then do
             let
@@ -314,16 +288,8 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
                 types <- mapM fill (toList . dtTypeArgs  $ t)
 
                 let
-                  copyFunc = "copy" <> llvmName (typeName t) types
-                addInstruction $ Do Call
-                  { tailCallKind       = Nothing
-                  , callingConvention  = CC.C
-                  , returnAttributes   = []
-                  , function           = callable voidType copyFunc
-                  , arguments          = (,[]) <$> [ operand
-                                                   , destPtr ]
-                  , functionAttributes = []
-                  , metadata           = [] }
+                  fName = llvmName ("copy" <> typeName t) types
+                callFunction fName [ operand, destPtr ] >>= addInstruction . Do
 
             case expType of
               t@GArray{} -> do
@@ -353,7 +319,7 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
 
 
 
-      createArg :: (Expression, ArgMode) -> LLVM (Operand,[t])
+      createArg :: (Expression, ArgMode) -> LLVM Operand
       createArg (e@Expression{expType = expt, exp', E.loc}, mode) = do
 
         expType <- fill expt
@@ -373,7 +339,7 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
               { operand0 = ref
               , type'    = ptr type'
               , metadata = [] }
-            pure $ (LocalReference (ptr type') label, [])
+            pure $ LocalReference (ptr type') label
 
           _ -> case exp' of
             Obj o | not (mode `elem` [In, Const] && not (expType =:= T.GOneOf [T.GADataType, T.GAArray]))-> do
@@ -407,14 +373,14 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
 
                   internalArrPtr <- newLabel "internalArrayPtr"
 
-                  addArgInsts $ internalArrPtr := GetElementPtr
+                  addInstruction $ internalArrPtr := GetElementPtr
                     { inBounds = False
                     , address  = (LocalReference type' primaPtr)
                     , indices  = constantOperand GInt . Left <$> [0, fromIntegral $ length dimensions]
                     , metadata = [] }
 
                   internalArr <- newLabel "internalArray"
-                  addArgInsts $ internalArr := Load
+                  addInstruction $ internalArr := Load
                     { volatile  = False
                     , address   = LocalReference (ptr type') internalArrPtr
                     , maybeAtomicity = Nothing
@@ -422,31 +388,23 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
                     , metadata  = [] }
 
                   castToFree <- newLabel "castToFree"
-                  addArgInsts $ castToFree := BitCast
+                  addInstruction $ castToFree := BitCast
                     { operand0 = LocalReference type' internalArr
                     , type'    = pointerType
                     , metadata = [] }
                   
-                  addArgInsts $ Do Call
-                    { tailCallKind       = Nothing
-                    , callingConvention  = CC.C
-                    , returnAttributes   = []
-                    , function           = callable voidType freeString
-                    , arguments          = [ (LocalReference pointerType castToFree,[])
-                                           , (filePath, []), (line,[]),(col,[])]
-                    , functionAttributes = []
-                    , metadata           = [] }
+                  let 
+                    args = [ LocalReference pointerType castToFree, filePath, line, col]
+                  callFunction freeString args >>= addInstruction . Do
+
 
                   if isIn
-                    then pure (LocalReference type' primaPtr,[])
-                    else pure $ (LocalReference (ptr type') primaPtr,[])
+                    then pure $ LocalReference type' primaPtr
+                    else pure $ LocalReference (ptr type') primaPtr
 
                 t | t =:= GADataType -> do
                   t <- pure $ t <> GADataType
-                  types <- mapM fill (toList . dtTypeArgs $ t)
-
-                  let
-                    postfix = llvmName (typeName t) types
+                  types <- mapM fill (toList . dtTypeArgs $ t)                   
 
                   destStructPtr <- newLabel "destStructPtr"
                   addInstruction $ destStructPtr := Load
@@ -459,20 +417,14 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
                   when (isIn) $ do
                     sourceStructPtr  <- objectRef o
 
-
-                    addInstruction $ Do Call
-                      { tailCallKind       = Nothing
-                      , callingConvention  = CC.C
-                      , returnAttributes   = []
-                      , function           = callable voidType $ "copy" <> postfix
-                      , arguments          = (,[]) <$> [ sourceStructPtr
-                                                       , LocalReference (ptr type') destStructPtr ]
-                      , functionAttributes = []
-                      , metadata           = [] }
+                    let 
+                      fName = llvmName ("copy" <> typeName t) types
+                      args = [sourceStructPtr, LocalReference (ptr type') destStructPtr]
+                    callFunction fName args >>= addInstruction . Do
 
                   if isIn
-                    then pure (LocalReference type' destStructPtr,[])
-                    else pure $ (LocalReference (ptr type') primaPtr,[])
+                    then pure $ LocalReference type' destStructPtr
+                    else pure $ LocalReference (ptr type') primaPtr
 
 
                 t | t =:= basic || t =:= GPointer GAny || t =:= highLevel -> do
@@ -493,9 +445,9 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
                         , maybeAtomicity = Nothing
                         , alignment = 4
                         , metadata  = [] }
-
-                      pure $ (LocalReference (ptr type') label,[])
-                    else pure $ (LocalReference (ptr type') primaPtr,[])
+                      pure $ LocalReference (ptr type') label
+                    
+                    else pure $ LocalReference (ptr type') primaPtr
 
 
                 t -> internal $ "Cannot pass arguments of type " <> show t
@@ -504,25 +456,19 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
 
               castToFree <- newLabel "castToFree"
 
-              addArgInsts $ castToFree := BitCast
+              addInstruction $ castToFree := BitCast
                 { operand0 = LocalReference type' primaPtr
                 , type'    = pointerType
                 , metadata = [] }
 
-              addArgInsts $ Do Call
-                { tailCallKind       = Nothing
-                , callingConvention  = CC.C
-                , returnAttributes   = []
-                , function           = callable voidType freeString
-                , arguments          = [ (LocalReference pointerType castToFree,[])
-                                       , (filePath,[]), (line,[]),(col,[])]
-                , functionAttributes = []
-                , metadata           = [] }
+              let 
+                args = [LocalReference pointerType castToFree, filePath, line, col]
+              callFunction freeString args >>= addInstruction . Do
 
               pure primaRef
 
             _ -> do
-              (,[]) <$> expression' e
+              expression' e
 
 
   Free { idName, freeType } -> do
@@ -573,31 +519,18 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
           , type'    = pointerType
           , metadata = [] }
 
-        addInstruction $ Do Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable voidType freeString
-          , arguments          = [(LocalReference pointerType iarrCast, [])
-                                 ,(filePath,[]), (line,[]), (col,[])]
-          , functionAttributes = []
-          , metadata           = [] }
+        let 
+          args = [LocalReference pointerType iarrCast, filePath, line, col]
+        callFunction freeString args >>= addInstruction . Do
 
         addInstruction $ labelCast := BitCast
           { operand0 = LocalReference type' labelLoad
           , type'    = pointerType
           , metadata = [] }
 
-        addInstruction $ Do Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable voidType freeString
-          , arguments          = (,[]) <$> [LocalReference pointerType labelCast, filePath, line, col]
-          , functionAttributes = []
-          , metadata           = [] }
-
-
+        let 
+          args = [LocalReference pointerType labelCast, filePath, line, col]
+        callFunction freeString args >>= addInstruction . Do
 
       _ -> do
 
@@ -608,19 +541,13 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
           , alignment = 4
           , metadata  = [] }
 
-        let call name = Do Call
-              { tailCallKind       = Nothing
-              , callingConvention  = CC.C
-              , returnAttributes   = []
-              , function           = callable voidType $ "destroy" <> name
-              , arguments          = [(LocalReference type' labelLoad, [])]
-              , functionAttributes = []
-              , metadata           = [] }
-
         case freeType of
-          GDataType n t ta -> do
+          GDataType name t ta -> do
             types <- mapM fill $ toList ta
-            addInstruction $ call (llvmName n types)
+            let 
+              fName = llvmName ("destroy" <> name) types
+              arg = [LocalReference type' labelLoad]
+            callFunction fName arg >>= addInstruction . Do
 
           _ -> pure ()
 
@@ -629,14 +556,8 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
           , type'    = pointerType
           , metadata = [] }
 
-        addInstruction $ Do Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable voidType freeString
-          , arguments          = (,[]) <$> [LocalReference pointerType labelCast, filePath, line, col]
-          , functionAttributes = []
-          , metadata           = [] }
+        let args = [LocalReference pointerType labelCast, filePath, line, col]
+        callFunction freeString args >>= addInstruction . Do
 
 
 
@@ -649,14 +570,9 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
         structSize <- sizeOf nType
 
         structCall <- newLabel "newArrStruct"
-        addInstruction $ structCall := Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable pointerType mallocString
-          , arguments          = [(constantOperand GInt . Left $structSize, [])]
-          , functionAttributes = []
-          , metadata           = [] }
+        let 
+          args = [constantOperand GInt . Left $ structSize]
+        callFunction mallocString args >>= addInstruction . (structCall :=)
 
         structCast <- newLabel "newArrStructCast"
         addInstruction $ structCast := BitCast
@@ -669,14 +585,7 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
         bytes <- foldM bytesAux (ConstantOperand (C.Int 32 innerSize)) dims
 
         iarrCall <- newLabel "newArrInternal"
-        addInstruction $ iarrCall := Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable pointerType mallocString
-          , arguments          = [(bytes, [])]
-          , functionAttributes = []
-          , metadata           = [] }
+        callFunction mallocString [bytes] >>= addInstruction . (iarrCall :=)
 
         inner <- toLLVMType innerType
 
@@ -751,14 +660,8 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
 
         typeSize <- sizeOf nType
 
-        addInstruction $ labelCall := Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable pointerType mallocString
-          , arguments          = [(constantOperand GInt . Left $typeSize, [])]
-          , functionAttributes = []
-          , metadata           = [] }
+        let args = [constantOperand GInt . Left $ typeSize]
+        callFunction mallocString args >>= addInstruction . (labelCall :=)
 
         addInstruction $ labelCast := BitCast
           { operand0 = LocalReference pointerType labelCall
@@ -778,22 +681,15 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
         let
           structArg = LocalReference type' labelCast
           dinamicAllocFlag = constantOperand GBool . Left $ 0
-          call name =  Do Call
-            { tailCallKind       = Nothing
-            , callingConvention  = CC.C
-            , returnAttributes   = []
-            , function           = callable voidType $ "init" <> name
-            , arguments          = (,[]) <$> [structArg, dinamicAllocFlag]
-            , functionAttributes = []
-            , metadata           = [] }
+          call name = callFunction name [structArg, dinamicAllocFlag] >>= addInstruction . Do
 
         case nType of
           GAlias _ (GDataType n t ta) -> do
             types <- mapM fill $ toList ta
-            addInstruction $ call (llvmName n types)
+            call (llvmName ("init" <> n) types)
           GDataType n t ta -> do
             types <- mapM fill $ toList ta
-            addInstruction $ call (llvmName n types)
+            call (llvmName ("init" <> n) types)
 
           _ -> pure ()
 
@@ -802,14 +698,8 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
     operands <- mapM expression' wexprs
     mapM_ write (Seq.zip operands (expType <$> wexprs))
 
-    when ln . addInstruction $ Do Call
-      { tailCallKind       = Nothing
-      , callingConvention  = CC.C
-      , returnAttributes   = []
-      , function           = callable voidType lnString
-      , arguments          = []
-      , functionAttributes = []
-      , metadata           = [] }
+    when ln (callFunction lnString [] >>= addInstruction . Do)
+      
     where
       write (operand, t') = do
         -- Build the operand of the expression
@@ -818,7 +708,7 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
 
         let
         -- Call the correct C write function
-          fun = callable voidType $ case t of
+          fun = case t of
             GBool      -> writeBString
             GChar      -> writeCString
             GFloat     -> writeFString
@@ -838,14 +728,7 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
             pure $ LocalReference pointerType pointer
           else pure operand
 
-        addInstruction $ Do Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = fun
-          , arguments          = [(operand', [])]
-          , functionAttributes = []
-          , metadata           = []}
+        callFunction fun [operand'] >>= addInstruction . Do
 
 
   Read { file, vars } -> mapM_ readVar vars
@@ -863,7 +746,7 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
 
           Just file' -> do
             let
-              fileRef = ConstantOperand . C.GlobalReference (pointerType) . Name $
+              fileRef = ConstantOperand . C.GlobalReference pointerType . mkName $
                         "__" <> unpack file'
 
             filePtr <- newLabel "filePtr"
@@ -876,7 +759,7 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
 
             let filePtrOp = LocalReference (pointerType) filePtr
 
-            pure . ([(filePtrOp,[])], ) $ case t of
+            pure . ([filePtrOp], ) $ case t of
                 T.GChar  -> readFileChar
                 T.GFloat -> readFileFloat
                 T.GInt   -> readFileInt
@@ -887,14 +770,7 @@ instruction i@Instruction {instLoc=Location(pos, _), inst' = ido} = case ido of
 
         readResult <- newLabel "readCall"
         -- Call the C read function
-        addInstruction $ readResult := Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable type' fread
-          , arguments          = args
-          , functionAttributes = []
-          , metadata           = [] }
+        callFunction fread args >>= addInstruction . (readResult :=)
 
         -- Get the reference of the variable's memory
         objRef <- objectRef var

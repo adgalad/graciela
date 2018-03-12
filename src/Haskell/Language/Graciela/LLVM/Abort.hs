@@ -26,12 +26,12 @@ import           Language.Graciela.LLVM.State
 import           Language.Graciela.LLVM.Type
 import           Language.Graciela.Location
 --------------------------------------------------------------------------------
-import qualified Data.Sequence                      as Seq (singleton)
-import           LLVM.General.AST
-import           LLVM.General.AST.Attribute
-import qualified LLVM.General.AST.CallingConvention as CC
-import qualified LLVM.General.AST.Constant          as C
-import           LLVM.General.AST.Type              (Type (VoidType))
+import qualified Data.Sequence              as Seq (singleton)
+import           LLVM.AST
+import           LLVM.AST.Attribute
+import qualified LLVM.AST.CallingConvention as CC
+import qualified LLVM.AST.Constant          as C
+import           LLVM.AST.Type              (Type (VoidType))
 --------------------------------------------------------------------------------
 
 abortString :: String
@@ -40,28 +40,23 @@ abortString = "_abort"
 --------------------------------------------------------------------------------
 
 -- | Used to build the args for an abort or a warning.
-args :: Integer -> SourcePos -> Operand -> [(Operand, [ParameterAttribute])]
-args i pos filePath =
-  [ (constantOperand GInt . Left $i, [])
-  , (filePath, [])
+args' :: Integer -> SourcePos -> Operand -> [Operand]
+args' i pos filePath =
+  [ constantOperand GInt . Left $ i
+  , filePath
   , posConstant . sourceLine  $ pos
   , posConstant . sourceColumn $ pos
   ]
   where
-    posConstant :: Pos -> (Operand, [a])
-    posConstant = (,[]) . constantOperand GInt . Left . fromIntegral . unPos
+    posConstant :: Pos -> Operand
+    posConstant = constantOperand GInt . Left . fromIntegral . unPos
 
 waCall :: String -> Integer -> SourcePos -> LLVM ()
 waCall func i pos = do 
   filePath <- getFilePathOperand (sourceName pos)
-  addInstruction $ Do Call
-    { tailCallKind        = Nothing
-    , callingConvention   = CC.C
-    , returnAttributes    = []
-    , function            = callable voidType func
-    , arguments           = args i pos filePath
-    , functionAttributes  = []
-    , metadata            = [] }
+  callFunction func (args' i pos filePath) >>= addInstruction . Do
+  
+    
 --------------------------------------------------------------------------------
 
 -- | Enum type for the different abort conditions.

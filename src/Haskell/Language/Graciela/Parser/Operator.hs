@@ -89,8 +89,7 @@ minChar = 0
 maxChar = 255
 
 --------------------------------------------------------------------------------
-arithU :: Integral a
-       => (Integer -> Integer)
+arithU :: (Integer -> Integer)
        -> (Double -> Double)
        -> (SourcePos -> Expression -> Parser (Maybe Expression))
 arithU fi ff = f

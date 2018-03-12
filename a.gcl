@@ -1,0 +1,25 @@
+
+ /*% LANGUAGE MemoryOperations %*/
+ /*% LANGUAGE EnableTrace %*/
+ /*% LANGUAGE LogicAnywhere %*/
+
+
+
+program a.bin begin
+
+
+
+
+main |[
+skip
+
+  // *p := 1010101;
+  // c(Q,p);
+  // writeln("es? > ", *Q.Hope);
+  // read(x,f,i) from "file";
+  // writeln(">> ", *p);
+  // writeln(x);
+  // writeln(hola(999))
+  // x := p[0];
+]|
+end

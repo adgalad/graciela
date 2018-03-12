@@ -23,9 +23,8 @@ abstract Multiset(T)
      * Precondicion: la ocurrencia del elemento debe ser mayor a cero
      */
     proc delete ( inout t : Multiset(T)*, in e : T )
-      let m0 := if t != null -> (*t).m [] otherwise -> {::} fi : multiset of T;
       {pre  multiplicity(e,(*t).m) > 0 pre}
-      {post multiplicity(e,m0) - 1 == multiplicity(e,(*t).m) post}
+      {post multiplicity(e,(*t').m) - 1 == multiplicity(e,(*t).m) post}
 
     /* Verificar si un elemento pertence al multiconjunto */
     func isElem ( t : Multiset(T)*, e : T ) -> boolean

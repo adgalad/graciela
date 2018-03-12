@@ -222,7 +222,7 @@ extern "C" {
     void _removePointer(int8_t* ptr, char* filePath, int l, int c);
     void _derefPointer (int8_t* ptr, int pragma, char* filePath, int l, int c);
 
-    char *_readln(int **i);
+    char *_readln(int *i);
 
 #ifdef __cplusplus
 }

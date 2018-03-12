@@ -130,16 +130,16 @@ term =  tuple
     <|> string
     <|> quantification
     <|> ifExp
-    <|> do 
+    <|> do
           p <- getPosition
           match TokApostrophe
-          putError p . UnknownError $ 
+          putError p . UnknownError $
             "Found unexpected: token " <> show TokApostrophe
           term
-    <|> do 
+    <|> do
           p <- getPosition
           match TokQuotation
-          putError p . UnknownError $ 
+          putError p . UnknownError $
             "Found unexpected: token " <> show TokQuotation
           term
 
@@ -503,7 +503,7 @@ collection = do
                   "\n\t\t * " <> show (GTuple GAny GAny)
                 pure Nothing
             newType -> pure $ Just (els |> e, newType)
-      
+
 
 variable :: ParserExp (Maybe MetaExpr)
 variable = do
@@ -612,7 +612,7 @@ variable = do
             pure Nothing
           else
             let
-              
+
               expr = case struct of
                 Just (GDataType structName' abstract t, mapTypes, _, _, targs) ->
                   let tt = fillType targs (removeAbst dt _selfType)
@@ -1174,7 +1174,7 @@ call = do
               case sequence args of
                 Nothing -> pure Nothing
                 Just args' -> do
-                  
+
                   let
                     aux (es, ts, c0, t0) (e@Expression { expConst, expType }, _, t1) =
                       (es |> e, ts |> expType, c0 && expConst, t0 <> t1)
@@ -1186,8 +1186,8 @@ call = do
                     SourcePos file line col = from
                     pos' = Expression loc GInt True . Value . IntV . fromIntegral . unPos <$>
                       [ line, col ]
-                  
-                  fileId <- lift (use stringIds) >>= \ids -> 
+
+                  fileId <- lift (use stringIds) >>= \ids ->
                     pure $ case Map.lookup (pack file) ids of
                       Nothing -> internal "No file name."
                       Just strId  -> Expression
@@ -1528,7 +1528,7 @@ subindex = do
   subindices' <- between (match TokLeftBracket) (match' TokRightBracket)
     (subAux `sepBy` match TokComma)
   to <- getPosition
-  
+
   pragOk <- Set.member MemoryOperations <$> lift (use pragmas)
   let subindices = sequence subindices'
 
@@ -1666,9 +1666,9 @@ dotField = do
       Just (e@Expression { exp', loc }, _, taint) -> do
         let Location (from,_) = loc
         case exp' of
-          Obj obj -> 
-            let 
-              doDT n typeArgs = do -- If the object has a DT type, then do the following 
+          Obj obj ->
+            let
+              doDT n typeArgs = do -- If the object has a DT type, then do the following
                 cstruct <- lift $ use currentStruct
                 case cstruct of
                   Just (GDataType name _ _, structFields, _, structAFields, _)
@@ -1828,12 +1828,12 @@ refof = do
         pure Nothing
 
 unsafeCast :: ParserExp (Maybe MetaExpr -> ParserExp (Maybe MetaExpr))
-unsafeCast = do 
+unsafeCast = do
   from     <- getPosition
   t        <- brackets . lift $ type'
   pragmas' <- lift $ use pragmas
   let pragOk = Set.member MemoryOperations pragmas'
- 
+
   unless pragOk . putError from . UnknownError $
     "Unknown token: " <> show t
 
@@ -1906,7 +1906,7 @@ binary _ _ _ Nothing = pure Nothing
 binary binOp opLoc
   (Just (l @ Expression { expType = ltype, expConst = lc, exp' = lexp }, _, ltaint))
   (Just (r @ Expression { expType = rtype, expConst = rc, exp' = rexp }, _, rtaint))
-  = do 
+  = do
     pragmas' <- lift $ use pragmas
     let pragOk = Set.member MemoryOperations pragmas'
 
@@ -1922,7 +1922,7 @@ binary binOp opLoc
           "\n\tbut expected an expression of type " <>
           "\n\t\t" <> expected
         pure Nothing
-      Left _ -> do 
+      Left _ -> do
         mexpr <- case binOp of
           Op.Bin   { binFunc   } ->
             let
@@ -1942,7 +1942,7 @@ binary binOp opLoc
           Op.Bin'  { binFunc'  } -> pure . Just $ binFunc' l r
 
           Op.Bin'' { binFunc'' } -> lift $ binFunc'' l r
-        
+
         case mexpr of
           Nothing -> pure Nothing
           Just expr ->
@@ -2137,7 +2137,7 @@ pointRange opLoc
     Left expected -> do
       let loc = Location (from l, to r)
       putError (from l) . UnknownError $
-        "Operator `" <> show Elem  <> 
+        "Operator `" <> show Elem  <>
         "` received two expressions of types:" <>
         "\n\t\t" <> show (ltype, rtype) <>
         "\n\tbut expected an expression of type " <>

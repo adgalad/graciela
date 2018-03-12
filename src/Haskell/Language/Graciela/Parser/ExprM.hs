@@ -19,8 +19,7 @@ where
 
 import Control.Applicative ((<|>))
 
-import Text.Megaparsec.Combinator
-import Text.Megaparsec.Prim
+import Text.Megaparsec
 
 -- | This data type specifies operators that work on values of type @a@.
 -- An operator is either binary infix or unary prefix or postfix. A binary

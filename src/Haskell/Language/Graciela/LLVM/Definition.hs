@@ -33,37 +33,35 @@ import qualified Language.Graciela.Location          as L (pos)
 import           Language.Graciela.Parser.Config
 import           Language.Graciela.Treelike
 --------------------------------------------------------------------------------
-import           Control.Lens                        (use, (%=), (&), (.=))
-import           Data.Array                          ((!))
-import           Data.Foldable                       (toList)
-import qualified Data.Map.Strict                     as Map
-import           Data.Maybe                          (fromJust, fromMaybe,
-                                                      isJust)
-import qualified Data.Sequence                       as Seq (empty, fromList)
-import           Data.Text                           (Text)
-import           Data.Word                           (Word32)
-import           LLVM.General.AST                    (BasicBlock (..),
-                                                      Named (..),
-                                                      Parameter (..),
-                                                      Terminator (..),
-                                                      functionDefaults)
-import qualified LLVM.General.AST                    as LLVM (Definition (..))
-import           LLVM.General.AST.AddrSpace
-import qualified LLVM.General.AST.CallingConvention  as CC (CallingConvention (C))
-import qualified LLVM.General.AST.Constant           as C
-import           LLVM.General.AST.Global             (Global (..),
-                                                      functionDefaults)
-import           LLVM.General.AST.Instruction
-import           LLVM.General.AST.IntegerPredicate   (IntegerPredicate (EQ, SGE, SLT))
-import           LLVM.General.AST.Linkage            (Linkage (Private))
-import           LLVM.General.AST.Name               (Name (..))
-import           LLVM.General.AST.Operand            (MetadataNode (..),
+import           Control.Lens                (use, (%=), (&), (.=))
+import           Data.Array                  ((!))
+import           Data.Foldable               (toList)
+import qualified Data.Map.Strict             as Map
+import qualified Data.Sequence               as Seq (empty, fromList)
+import           Data.Text                   (Text)
+import           Data.Word                   (Word32)
+import           LLVM.AST                    (BasicBlock (..),
+                                              Named (..),
+                                              Parameter (..),
+                                              Terminator (..),
+                                              functionDefaults)
+import qualified LLVM.AST                    as LLVM (Definition (..))
+import           LLVM.AST.AddrSpace
+import qualified LLVM.AST.CallingConvention  as CC (CallingConvention (C))
+import qualified LLVM.AST.Constant           as C
+import           LLVM.AST.Global             (Global (..),
+                                              functionDefaults)
+import           LLVM.AST.Instruction
+import           LLVM.AST.IntegerPredicate   (IntegerPredicate (EQ, SGE, SLT))
+import           LLVM.AST.Linkage            (Linkage (Private))
+import           LLVM.AST.Name               (Name, mkName)
+import           LLVM.AST.Operand            (MetadataNode (..),
                                                       Operand (..))
-import           LLVM.General.AST.ParameterAttribute (ParameterAttribute (..))
-import           LLVM.General.AST.Type               (Type (..), double, ptr)
-import qualified LLVM.General.AST.Type               as LLVM (Type)
-import           LLVM.General.AST.Visibility         (Visibility (Default))
-import           Prelude                             hiding (Ordering (EQ))
+import           LLVM.AST.ParameterAttribute (ParameterAttribute (..))
+import           LLVM.AST.Type               (Type (..), double, ptr)
+import qualified LLVM.AST.Type               as LLVM (Type(..))
+import           LLVM.AST.Visibility         (Visibility (Default))
+import           Prelude                     hiding (Ordering (EQ))
 --------------------------------------------------------------------------------
 
 {- Given the instruction block of the main program, construct the main LLVM function-}
@@ -74,34 +72,14 @@ mainDefinition block files = do
   (main #)
   mapM_ openFile files
 
-  addInstruction $ Do Call
-    { tailCallKind       = Nothing
-    , callingConvention  = CC.C
-    , returnAttributes   = []
-    , function           = callable voidType initTrashCollectorString
-    , arguments          = []
-    , functionAttributes = []
-    , metadata           = [] }
+  callFunction initTrashCollectorString [] >>= addInstruction . Do
 
-  addInstruction $ Do Call
-    { tailCallKind       = Nothing
-    , callingConvention  = CC.C
-    , returnAttributes   = []
-    , function           = callable voidType openScopeString
-    , arguments          = []
-    , functionAttributes = []
-    , metadata           = [] }
+  callFunction openScopeString [] >>= addInstruction . Do
 
   instruction block
 
-  addInstruction $ Do Call
-    { tailCallKind       = Nothing
-    , callingConvention  = CC.C
-    , returnAttributes   = []
-    , function           = callable voidType freeTrashCollectorString
-    , arguments          = []
-    , functionAttributes = []
-    , metadata           = [] }
+  callFunction freeTrashCollectorString [] >>= addInstruction . Do
+    
 
   mapM_ closeFile files
 
@@ -110,7 +88,7 @@ mainDefinition block files = do
   blocks' <- use blocks
   blocks .= Seq.empty
   addDefinition $ LLVM.GlobalDefinition functionDefaults
-    { name        = Name "main"
+    { name        = mkName "main"
     , parameters  = ([], False)
     , returnType  = intType
     , basicBlocks = toList blocks'
@@ -119,21 +97,14 @@ mainDefinition block files = do
   where
     openFile file = do
       let
-        fileRef = ConstantOperand . C.GlobalReference pointerType . Name $
+        fileRef = ConstantOperand . C.GlobalReference pointerType . mkName $
                   "__" <> file
 
       fileLabel <- newLabel "file"
       strs <- use stringIds
       let Just i = (pack file) `Map.lookup` strs
       string <- (!i) <$> use stringOps
-      addInstruction $ fileLabel := Call
-        { tailCallKind       = Nothing
-        , callingConvention  = CC.C
-        , returnAttributes   = []
-        , function           = callable pointerType openFileStr
-        , arguments          = [(string,[])]
-        , functionAttributes = []
-        , metadata           = [] }
+      callFunction openFileStr [string] >>= addInstruction . (fileLabel :=)
 
       addInstruction $ Do Store
           { volatile = False
@@ -145,7 +116,7 @@ mainDefinition block files = do
 
     closeFile file = do
       let
-        fileRef = ConstantOperand . C.GlobalReference pointerType . Name $
+        fileRef = ConstantOperand . C.GlobalReference pointerType . mkName $
                   "__" <> file
       filePtr <- newLabel "filePtr"
       addInstruction $ filePtr := Load
@@ -155,31 +126,30 @@ mainDefinition block files = do
         , alignment = 4
         , metadata  = [] }
 
-      addInstruction $ Do Call
-        { tailCallKind       = Nothing
-        , callingConvention  = CC.C
-        , returnAttributes   = []
-        , function           = callable voidType closeFileStr
-        , arguments          = [(LocalReference pointerType filePtr,[])]
-        , functionAttributes = []
-        , metadata           = [] }
+      callFunction closeFileStr [LocalReference pointerType filePtr] >>= addInstruction . Do
 
 
 
 {- Translate a definition from Graciela AST to LLVM AST -}
 definition :: Definition -> LLVM ()
-definition Definition { defName, def', pre, post, bound, defLoc = Location (pos, _to), isDecl }
+definition Definition { defName
+                      , def'
+                      , pre
+                      , post
+                      , bound
+                      , defLoc = Location (pos, _to)
+                      , isDecl
+                      , isExtern}
   = if isDecl then do 
       use evalAssertions >>= \asserts -> do 
         cs <- use currentStruct
-        pName <- case cs of
+        pName <- if isExtern then pure (unpack defName) else case cs of
           Nothing -> do
             pure . ('$':) $ unpack defName
           Just Struct{ structBaseName, structTypes, struct' = DataType{abstract} } -> do
             abstractStruct <- (Map.lookup abstract) <$> use structs
             t' <- mapM fill structTypes
-            let postFix = llvmName ("-" <> structBaseName) t'
-            pure . ('$':) $ unpack defName <> postFix
+            pure . ('$':) $ llvmName (defName <> "-" <> structBaseName) t'
 
         case def' of
           FunctionDef { funcRetType, funcParams, funcRecursive  } -> do
@@ -188,39 +158,38 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
             retType <- toLLVMType funcRetType
             
             let 
-              hasOldBound = Name $ "." <> unpack defName <> "HasOldBound"
-              oldBound    = Name $ "." <> unpack defName <> "OldBound"
+              hasOldBound = mkName $ "." <> unpack defName <> "HasOldBound"
+              oldBound    = mkName $ "." <> unpack defName <> "OldBound"
 
-              params' = if isJust bound && (funcRecursive && asserts)
+              params' = if isJust bound && funcRecursive && asserts
                 then [Parameter boolType hasOldBound [], Parameter intType oldBound []]
                 else []
-            addDefinitions  [defineFunction pName (params' <> params) retType]
+            addDefinition $ defineFunction pName (params' <> params) retType
 
           ProcedureDef { procParams, procRecursive } -> do
             params  <- mapM (makeParam isDecl) . toList $ procParams
             
             let
-              hasOldBound = Name $ "." <> unpack defName <> "HasOldBound"
-              oldBound    = Name $ "." <> unpack defName <> "OldBound"
+              hasOldBound = mkName $ "." <> unpack defName <> "HasOldBound"
+              oldBound    = mkName $ "." <> unpack defName <> "OldBound"
 
               params' = if isJust bound && (procRecursive && asserts)
                 then [Parameter boolType hasOldBound [], Parameter intType oldBound []]
                 else []
 
-            addDefinitions  [defineFunction pName (params' <> params) voidType]
+            addDefinition $ defineFunction pName (params' <> params) voidType
 
           GracielaFunc{} -> pure () -- graciela native function should be declared here
                                     -- instead of declaring them manually
 
     else case def' of
       FunctionDef { funcBody, funcRetType, funcParams, funcRecursive, funcDecls } -> do
-        doingFunction .= True
         func <- newLabel $ "func" <> unpack defName
         (func #)
 
         openScope
 
-        params <- mapM (makeParam' isDecl) . toList $ funcParams
+        params' <- mapM (makeParam' isDecl) . toList $ funcParams
         mapM_ arrAux' funcParams
 
         mapM_ declaration funcDecls
@@ -231,10 +200,10 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
           then Just <$> precondition pre
           else pure Nothing 
 
-        params' <- if isJust bound 
+        params'' <- if isJust bound 
           then recursiveParams (funcRecursive && asserts) -- recursion is verified if the assertions are enabled
           else pure []
-
+        let params = params'' <> params
         cs <- use currentStruct
         returnType <- toLLVMType funcRetType
         let
@@ -274,19 +243,22 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
 
 
         (postFix, returnOperand) <- case cs of
-          Nothing  -> do 
+          Nothing  -> do
+            let paramType = map (\(Parameter t _ _) -> t) params
+            functionsTypes %= Map.insert (mkName (unpack defName)) (llvmFunT returnType paramType)
             returnOp <- body
             when asserts $ do 
               retVar returnOp
               postcondition (fromJust cond) post
-            pure ("", returnOp)
+            pure (unpack defName, returnOp)
           
 
           Just Struct{ structBaseName, structTypes, struct' = DataType{abstract} } -> do
             abstractStruct <- (Map.lookup abstract) <$> use structs
             t' <- mapM fill structTypes
-            let postFix = llvmName ("-" <> structBaseName) t'
-
+            let postFix = llvmName (defName <> "-" <> structBaseName) t'
+                paramType = map (\(Parameter t _ _) -> t) params
+            functionsTypes %= Map.insert (mkName postFix) (llvmFunT returnType paramType)
             let
               maybeProc = case abstractStruct of
                 Just Struct {structProcs} -> defName `Map.lookup` structProcs
@@ -313,18 +285,17 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
           { returnOperand = Just returnOperand
           , metadata' = [] }
 
-        let name = Name . ('$':) $ unpack defName <> postFix
+        let name = mkName . ('$':) $ postFix
         blocks' <- use blocks
         blocks .= Seq.empty
 
         addDefinition $ LLVM.GlobalDefinition functionDefaults
           { name        = name
-          , parameters  = (params' <> params, False)
+          , parameters  = (params, False)
           , returnType
           , basicBlocks = toList blocks'
           }
         closeScope
-        doingFunction .= False
 
 
       ProcedureDef { procDecl, procParams, procBody, procRecursive } -> do
@@ -333,7 +304,7 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
         asserts <- use evalAssertions
         openScope -- Open scope in symbol table
 
-        params <- mapM (makeParam isDecl) . toList $ procParams -- Create parameters
+        params' <- mapM (makeParam isDecl) . toList $ procParams -- Create parameters
         mapM_ declarationsOrRead procDecl -- do internal declarations and reads instructions
         mapM_ arrAux procParams -- create new arrays, if needed
         
@@ -341,10 +312,10 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
           then Just <$> precondition pre
           else pure Nothing 
 
-        params' <- if isJust bound 
+        params'' <- if isJust bound 
           then recursiveParams (procRecursive && asserts) -- recursion is verified if the assertions are enabled
           else pure []
-
+        let params = params'' <> params
         cs <- use currentStruct
         when asserts $ forM_ procParams makeTempVar -- Create variables with the initial value
         let
@@ -392,17 +363,23 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
 
         pName <- case cs of
           Nothing -> do
+            let 
+              fname = (unpack defName)
+              paramType = map (\(Parameter t _ _) -> t) params
+            functionsTypes %= Map.insert (mkName fname) (llvmFunT voidType paramType)
             body Nothing
-
-            pure . ('$':) $ unpack defName
+            pure $ '$':fname
 
           Just Struct{ structBaseName, structTypes, struct' = DataType{abstract} } -> do
             abstractStruct <- (Map.lookup abstract) <$> use structs
             t' <- mapM fill structTypes
-            let postFix = llvmName ("-" <> structBaseName) t'
-
+            let 
+              fname = llvmName (defName <> "-" <> structBaseName) t'
+              paramType = map (\(Parameter t _ _) -> t) params
+            functionsTypes %= Map.insert (mkName  fname) (llvmFunT voidType paramType)
+            
             body abstractStruct
-            pure . ('$':) $ unpack defName <> postFix
+            pure $ '$':fname
 
         when asserts $ do
           postcondition (fromJust cond) post
@@ -412,8 +389,8 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
         blocks' <- use blocks
 
         addDefinition $ LLVM.GlobalDefinition functionDefaults
-          { name        = Name pName
-          , parameters  = (params' <> params,False)
+          { name        = mkName pName
+          , parameters  = (params,False)
           , returnType  = voidType
           , basicBlocks = toList blocks'
           }
@@ -461,16 +438,10 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
           types <- mapM fill (toList . T.dtTypeArgs $ t)
 
           let
-            copyFunc = "copy" <> llvmName (T.typeName t) types
-          addInstruction $ Do Call
-            { tailCallKind       = Nothing
-            , callingConvention  = CC.C
-            , returnAttributes   = []
-            , function           = callable voidType copyFunc
-            , arguments          = (,[]) <$> [ sourceVar
-                                             , destVar ]
-            , functionAttributes = []
-            , metadata           = [] }
+            copyFunc = llvmName ("copy" <> T.typeName t) types
+            args = [ sourceVar, destVar ]
+          callFunction copyFunc args >>= addInstruction . Do
+          
         _ -> do
           value <- newLabel "value"
           addInstruction $value := Load
@@ -557,32 +528,10 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
             , metadata' = [] }
 
           (arrNotOk #)
-          addInstruction $ Do Call
-            { tailCallKind       = Nothing
-            , callingConvention  = CC.C
-            , returnAttributes   = []
-            , function           = callable voidType writeIString
-            , arguments          = [(paramDim,[])]
-            , functionAttributes = []
-            , metadata           = [] }
-
-          addInstruction $ Do Call
-            { tailCallKind       = Nothing
-            , callingConvention  = CC.C
-            , returnAttributes   = []
-            , function           = callable voidType lnString
-            , arguments          = []
-            , functionAttributes = []
-            , metadata           = [] }
-
-          addInstruction $ Do Call
-            { tailCallKind       = Nothing
-            , callingConvention  = CC.C
-            , returnAttributes   = []
-            , function           = callable voidType writeIString
-            , arguments          = [(LocalReference intType argDim,[])]
-            , functionAttributes = []
-            , metadata           = [] }
+          
+          callFunction writeIString [paramDim] >>= addInstruction . Do
+          callFunction lnString [] >>= addInstruction . Do
+          callFunction writeIString [LocalReference intType argDim] >>= addInstruction . Do
 
           abort Abort.BadArrayArg (L.pos . loc $ dim)
 
@@ -650,16 +599,10 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
       type' <- toLLVMType t
       t <- pure $ t <> T.GADataType
       t' <- mapM fill (toList . T.dtTypeArgs $ t)
-      let postFix = llvmName ("-" <> T.typeName t) t'
-
-      addInstruction $ Do Call
-        { tailCallKind       = Nothing
-        , callingConvention  = CC.C
-        , returnAttributes   = []
-        , function           = callable voidType (funName <> postFix)
-        , arguments          = [(LocalReference type' name,[])]
-        , functionAttributes = []
-        , metadata           = [] }
+      let 
+        fName = llvmName (funName <> "-" <> T.typeName t) t'
+        args = [LocalReference type' name]
+      callFunction fName args >>= addInstruction . Do
 
       pure exit
 
@@ -674,17 +617,10 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
     callInvariant funName cond name t exit = do
       type' <- toLLVMType t
       t' <- mapM fill (toList . T.dtTypeArgs $ t)
-      let postFix = llvmName ("-" <> T.typeName t) t'
-
-
-      addInstruction $ Do Call
-        { tailCallKind       = Nothing
-        , callingConvention  = CC.C
-        , returnAttributes   = []
-        , function           = callable voidType (funName <> postFix)
-        , arguments          = [(LocalReference type' name,[]), (cond,[])]
-        , functionAttributes = []
-        , metadata           = [] }
+      let 
+        fName = llvmName (funName <> "-" <> T.typeName t) t'
+        args = [LocalReference type' name, cond]
+      callFunction fName args >>= addInstruction . Do
 
       pure exit
     
@@ -694,8 +630,8 @@ definition Definition { defName, def', pre, post, bound, defLoc = Location (pos,
         boundExp = fromMaybe
           (internal "boundless recursive function.")
           bound
-        hasOldBound = Name $ "." <> unpack defName <> "HasOldBound"
-        oldBound = Name $ "." <> unpack defName <> "OldBound"
+        hasOldBound = mkName $ "." <> unpack defName <> "HasOldBound"
+        oldBound = mkName $ "." <> unpack defName <> "OldBound"
 
       funcBodyLabel <- newLabel $ "func" <> unpack defName <> "Body"
       boundOperand <- expression boundExp
@@ -978,8 +914,8 @@ preDefinitions files = do
     , defineFunction' equalRelString            ptrParam2 boolType
 
     , defineFunction' equalTupleString          [ ("x", ptr tupleType)
-                                               , ("y", ptr tupleType)]
-                                               boolType
+                                                , ("y", ptr tupleType)]
+                                                boolType
 --------------------------------------------------------------------------------
     , defineFunction' sizeSetString             ptrParam intType
     , defineFunction' sizeSeqString             ptrParam intType
@@ -1136,7 +1072,7 @@ preDefinitions files = do
     , defineFunction' readBoolStd   [] boolType
     , defineFunction' readCharStd   [] charType
     , defineFunction' readFloatStd  [] floatType
-    , defineFunction' readlnString  [("ptr", ptr $ ptr intType)] pointerType
+    , defineFunction' readlnString  [("ptr", ptr intType)] pointerType
 
     -- Rand
     , defineFunction' randIntString   [("ptr", pointerType)] voidType
@@ -1169,7 +1105,7 @@ preDefinitions files = do
     ]
 
   where
-    parameter (name, t) = Parameter t (Name name) []
+    parameter (name, t) = Parameter t (mkName name) []
     defineFunction' name params ret = 
         defineFunction name (fmap parameter params) ret
     intParam      = [("x",     intType)]
@@ -1189,13 +1125,13 @@ preDefinitions files = do
     stringParam   = [("msg", stringType)]
     overflow' n   = StructureType False [IntegerType n, boolType]
     addFile file  = addDefinition $ LLVM.GlobalDefinition GlobalVariable
-        { name            = Name ("__" <> file)
+        { name            = mkName ("__" <> file)
         , linkage         = Private
         , visibility      = Default
         , dllStorageClass = Nothing
         , threadLocalMode = Nothing
         , addrSpace       = AddrSpace 0
-        , hasUnnamedAddr  = False
+        , unnamedAddr     = Nothing
         , isConstant      = False
         , type'           = pointerType
         , initializer     = Just . C.Null $ pointerType
@@ -1206,7 +1142,7 @@ preDefinitions files = do
 
 
 defineFunction name params t = LLVM.GlobalDefinition $ functionDefaults
-  { name        = Name name
+  { name        = mkName name
   , parameters  = (params, False)
   , returnType  = t
   , basicBlocks = [] }

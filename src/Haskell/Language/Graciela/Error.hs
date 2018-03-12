@@ -4,6 +4,7 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Language.Graciela.Error where
 --------------------------------------------------------------------------------
@@ -18,7 +19,7 @@ import           Data.Set                         (Set)
 import qualified Data.Set                         as Set
 import           Data.Text                        (unpack)
 import           Text.Megaparsec                  hiding (Token)
-import           Text.Megaparsec.Error
+import           Text.Megaparsec.Error            
 --------------------------------------------------------------------------------
 
 data Error
@@ -104,12 +105,8 @@ data Error
     { emsg :: String }
   deriving (Show, Eq, Generic, Serialize)
 
-instance ErrorComponent Error where
-  representFail :: String -> Error
-  representFail = UnknownError
 
-  {- Unused, just to remove the class warning-}
-  representIndentation _ _ _ = UnknownError ""
+type GracielaError = ParseError Token Error
 
 
 instance ShowErrorComponent Error where
@@ -195,7 +192,7 @@ instance ShowErrorComponent Error where
       "Missing couple invariant in type `" <> unpack tName <> "`."
 
     NoProcBody { pName } ->
-      "Procedure `" <> unpack pName <> "` has not instruction block.\n" <>
+      "Procedure `" <> unpack pName <> "` has not instruction block.\n\t" <>
       "Possible solution: Declare a instruction block using `|[` and `]|`."
 
     NoProcPrecondition { pName } ->
@@ -226,36 +223,32 @@ instance ShowErrorComponent Error where
 instance Ord Error where
   a <= b = True
 
+instance Ord (ParseError Token Error) where
+  a <= b = True  
+
 -- Modify the pretty print of errors
 prettyError :: ( Ord t
                , ShowToken t
                , ShowErrorComponent e )
   => ParseError t e    -- ^ Parse error to render
   -> String            -- ^ Result of rendering
-prettyError (ParseError pos us ps xs) =
-  sourcePosStackPretty pos <> ": " <> "\ESC[1;31m" <> "Error:" <> "\ESC[m\n" <>
-  if Set.null us && Set.null ps && Set.null xs
-    then "unknown parse error\n"
-    else
-      let message =
-            [ messageItemsPretty "\tFound unexpected: " us
-            , messageItemsPretty "\tinstead of: "  ps
-            , unlines . fmap ("\t"<>) $
-              (showErrorComponent <$> Set.toAscList xs) ] :: [String]
-      in concat message
+prettyError e =
+  sourcePosStackPretty (errorPos e) <> ":" <> "\ESC[1;31m Error:\ESC[m\n\t" <>
+    parseErrorTextPretty e
+  
 
-messageItemsPretty :: ShowErrorComponent a
-  => String            -- ^ Prefix to prepend
-  -> Set a             -- ^ Collection of messages
-  -> String            -- ^ Result of rendering
-messageItemsPretty prefix ts
-  | Set.null ts = ""
-  | otherwise =
-    let f = orList . Set.toAscList . Set.map showErrorComponent
-    in prefix <> f ts <> "\n"
+-- messageItemsPretty :: ShowErrorComponent a
+--   => String            -- ^ Prefix to prepend
+--   -> Set a             -- ^ Collection of messages
+--   -> String            -- ^ Result of rendering
+-- messageItemsPretty prefix ts
+--   | Set.null ts = ""
+--   | otherwise =
+--     let f = orList . Set.toAscList . Set.map showErrorComponent
+--     in prefix <> f ts <> "\n"
 
 
-orList :: [String] -> String
-orList (x:[])  = x
-orList (x:[y]) = x <> " or " <> y
-orList xs      = intercalate ", " (init xs) <> ", or " <> (last xs)
+-- orList :: [String] -> String
+-- orList (x:[])  = x
+-- orList (x:[y]) = x <> " or " <> y
+-- orList xs      = intercalate ", " (init xs) <> ", or " <> (last xs)

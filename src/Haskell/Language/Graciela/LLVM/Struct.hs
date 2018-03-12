@@ -38,24 +38,24 @@ import qualified Data.Map.Strict                    as Map
 import           Data.Sequence                      ((|>))
 import qualified Data.Sequence                      as Seq
 import           Data.Text                          (Text, pack, unpack)
-import           LLVM.General.AST                   (BasicBlock (..),
+import           LLVM.AST                   (BasicBlock (..),
                                                      Definition (..),
                                                      Parameter (..),
                                                      Terminator (..),
                                                      functionDefaults)
-import qualified LLVM.General.AST.CallingConvention as CC
-import qualified LLVM.General.AST.Constant          as C (Constant (..))
-import qualified LLVM.General.AST.Float             as LLVM (SomeFloat (Double))
-import           LLVM.General.AST.Global            (Global (basicBlocks, name, parameters, returnType),
+import qualified LLVM.AST.CallingConvention as CC
+import qualified LLVM.AST.Constant          as C (Constant (..))
+import qualified LLVM.AST.Float             as LLVM (SomeFloat (Double))
+import           LLVM.AST.Global            (Global (basicBlocks, name, parameters, returnType),
                                                      functionDefaults)
-import           LLVM.General.AST.Instruction       (Instruction (..),
+import           LLVM.AST.Instruction       (Instruction (..),
                                                      Named (..),
                                                      Terminator (..))
-import           LLVM.General.AST.Name              (Name (..))
-import           LLVM.General.AST.Operand           (CallableOperand,
+import           LLVM.AST.Name              (Name, mkName)
+import           LLVM.AST.Operand           (CallableOperand,
                                                      Operand (..))
-import           LLVM.General.AST.Type              hiding (void)
-import qualified LLVM.General.AST.Type              as LLVM
+import           LLVM.AST.Type              hiding (void)
+import qualified LLVM.AST.Type              as LLVM
 --------------------------------------------------------------------------------
 
 data Invariant = Invariant | RepInvariant | CoupInvariant deriving (Eq)
@@ -82,15 +82,11 @@ defineStruct structBaseName (ast, typeMaps) = case ast of
         let
           -- SourcePos f _ _ = 
           name  = llvmName structBaseName types
-          structType = LLVM.NamedTypeReference (Name name)
+          structType = LLVM.NamedTypeReference (mkName name)
 
-        moduleDefs %= (|> TypeDefinition (Name name) type')
+        moduleDefs %= (|> TypeDefinition (mkName name) type')
 
-        currentStruct .= Nothing
-        coupling .= True
-        defineGetters fromOtherModule couple name structType -- While building getters, currentStruct must be Nothing
-        coupling .= False
-        currentStruct .= Just ast
+        defineGetters fromOtherModule couple name structType
 
         defaultConstructor fromOtherModule name structType typeMap
         defaultDestructor fromOtherModule name structType typeMap (pos structLoc)
@@ -122,8 +118,8 @@ defaultConstructor :: Bool -- is a declaration or a definition
 defaultConstructor True name structType _ = do
   let
     procName = "init" <> name
-    selfParam   = Parameter (ptr structType) (Name "__self") []
-    dAllocParam = Parameter boolType (Name "dinamicAlloc") []
+    selfParam   = Parameter (ptr structType) (mkName "__self") []
+    dAllocParam = Parameter boolType (mkName "dinamicAlloc") []
 
   addDefinitions $ [defineFunction procName [selfParam, dAllocParam] voidType]
 
@@ -205,14 +201,7 @@ defaultConstructor _ name structType typeMap = do
 
         (dAllocTrue #)
 
-        addInstruction $ iarr := Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable pointerType mallocString
-          , arguments          = [(numD, [])]
-          , functionAttributes = []
-          , metadata           = [] }
+        callFunction mallocString [numD] >>= addInstruction . (iarr :=)
 
         iarrCast <- newUnLabel
         addInstruction $ iarrCast := BitCast
@@ -246,14 +235,7 @@ defaultConstructor _ name structType typeMap = do
         (dAllocFalse #)
 
         iarr <- newUnLabel
-        addInstruction $ iarr := Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable pointerType mallocString
-          , arguments          = [(numD, [])]
-          , functionAttributes = []
-          , metadata           = [] }
+        callFunction mallocString [numD] >>= addInstruction . (iarr :=)
 
         iarrCast <- newUnLabel
         addInstruction $ iarrCast := BitCast
@@ -289,7 +271,7 @@ defaultConstructor _ name structType typeMap = do
         newCollection <- newLabel $ "newCollection"
 
         let
-          funStr = case t of
+          fName = case t of
             GSet GTuple{}      -> "_newSetPair"
             GSet _             -> "_newSet"
             GMultiset GTuple{} -> "_newMultisetPair"
@@ -299,14 +281,7 @@ defaultConstructor _ name structType typeMap = do
             GFunc _ _          -> "_newFunction"
             GRel _ _           -> "_newRelation"
 
-        addInstruction $ newCollection := Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable pointerType funStr
-          , arguments          = []
-          , functionAttributes = []
-          , metadata           = [] }
+        callFunction fName [] >>= addInstruction . (newCollection :=)
 
         addInstruction $ member := GetElementPtr
             { inBounds = False
@@ -333,7 +308,7 @@ defaultConstructor _ name structType typeMap = do
     dAllocParam = Parameter boolType dAllocName []
 
   addDefinition $ GlobalDefinition functionDefaults
-    { name        = Name procName
+    { name        = mkName procName
     , parameters  = ([selfParam, dAllocParam],False)
     , returnType  = voidType
     , basicBlocks = toList blocks' }
@@ -385,7 +360,7 @@ defaultDestructor :: Bool -- is a declaration or a definition
 defaultDestructor True name structType _ _= do
   let
     procName = "destroy" <> name
-    selfParam   = Parameter (ptr structType) (Name "__self") []
+    selfParam   = Parameter (ptr structType) (mkName "__self") []
 
   addDefinitions $ [defineFunction procName [selfParam] voidType]
 
@@ -447,14 +422,9 @@ defaultDestructor _ name structType typeMap pos = do
           , type'    = pointerType
           , metadata = [] }
 
-        addInstruction $ Do Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable voidType freeString
-          , arguments          = (,[]) <$> [LocalReference pointerType iarrCast, filePath, line, col]
-          , functionAttributes = []
-          , metadata = [] }
+        let 
+          args = [LocalReference pointerType iarrCast, filePath, line, col]
+        callFunction freeString args >>= addInstruction . Do
 
       _ -> pure ()
 
@@ -467,7 +437,7 @@ defaultDestructor _ name structType typeMap pos = do
   let selfParam = Parameter (ptr structType) selfName []
 
   addDefinition $ GlobalDefinition functionDefaults
-        { name        = Name procName
+        { name        = mkName procName
         , parameters  = ([selfParam],False)
         , returnType  = voidType
         , basicBlocks = toList blocks' }
@@ -476,8 +446,8 @@ defaultCopy :: Bool -> String -> LLVM.Type -> TypeArgs -> LLVM ()
 defaultCopy True name structType _ = do
   let
     procName = "copy" <> name
-    source = Parameter (ptr structType) (Name "source") []
-    dest   = Parameter (ptr structType) (Name "dest")   []
+    source = Parameter (ptr structType) (mkName "source") []
+    dest   = Parameter (ptr structType) (mkName "dest")   []
 
   addDefinitions $ [defineFunction procName [source, dest] voidType]
 
@@ -534,17 +504,11 @@ defaultCopy _ name structType typeMap = do
         types <- mapM fill (toList . dtTypeArgs $ t)
 
         let
-          postfix = llvmName (typeName t) types
+          fName = "copy" <> llvmName (typeName t) types
+          args = [ LocalReference (ptr type') sourcePtr
+                 , LocalReference (ptr type') destPtr ]
 
-        addInstruction $ Do Call
-          { tailCallKind       = Nothing
-          , callingConvention  = CC.C
-          , returnAttributes   = []
-          , function           = callable voidType $ "copy" <> postfix
-          , arguments          = (,[]) <$> [ LocalReference (ptr type') sourcePtr
-                                           , LocalReference (ptr type') destPtr ]
-          , functionAttributes = []
-          , metadata           = [] }
+        callFunction fName args >>= addInstruction . Do
 
       _ -> do
         sourceValue <- newLabel "sourceArr"
@@ -576,7 +540,7 @@ defaultCopy _ name structType typeMap = do
     destParam   = Parameter (ptr structType) destStructName   []
 
   addDefinition $ GlobalDefinition functionDefaults
-        { name        = Name procName
+        { name        = mkName procName
         , parameters  = ([sourceParam, destParam],False)
         , returnType  = voidType
         , basicBlocks = toList blocks' }
@@ -592,73 +556,78 @@ defineGetters :: Bool -- is a declaration or a definition
               -> String
               -> LLVM.Type
               -> LLVM ()
-defineGetters True insts name t = do
-  forM_ insts $ \x -> case G.inst' x of
-    G.Assign {G.assignPairs} -> forM_ assignPairs $ \(lval,expr) -> do
-        let
-          varName = case O.obj' lval of
-            O.Member{O.fieldName} -> fieldName
-            _              -> internal $ "Could not build the getter of a non member lval"
+defineGetters fromOtherModule couple name structType = do
 
-          procName = "get_" <> unpack varName <> "-" <> name
-          selfParam = Parameter (ptr t) (Name "__self") []
-        
-        addDefinitions $ [defineFunction procName [selfParam] (pointerType)]
+  ast <- use currentStruct
+  currentStruct .= Nothing
+  coupling .= True
+  defineGetters' fromOtherModule couple name structType -- While building getters, currentStruct must be Nothing
+  coupling .= False
+  currentStruct .= ast
+  where 
+    defineGetters' True insts name t = do
+      forM_ insts $ \x -> case G.inst' x of
+        G.Assign {G.assignPairs} -> forM_ assignPairs $ \(lval,expr) -> do
+            let
+              varName = case O.obj' lval of
+                O.Member{O.fieldName} -> fieldName
+                _              -> internal $ "Could not build the getter of a non member lval"
+
+              procName = "get_" <> unpack varName <> "-" <> name
+              selfParam = Parameter (ptr t) (mkName "__self") []
+            addDefinitions $ [defineFunction procName [selfParam] (pointerType)]
 
 
 
-defineGetters _ insts name t = do
+    defineGetters' _ insts name t = do
+      
+      forM_ insts $ \x -> case G.inst' x of
+        G.Assign {G.assignPairs} -> forM_ assignPairs $ \(lval,expr) -> do
+            let
+              varName = unpack $ case O.obj' lval of
+                O.Member{O.fieldName} -> fieldName
+                _              -> internal $ "Cannot build the getter of a non member lval"
 
-  forM_ insts $ \x -> case G.inst' x of
-    G.Assign {G.assignPairs} -> forM_ assignPairs $ \(lval,expr) -> do
-        let
-          varName = case O.obj' lval of
-            O.Member{O.fieldName} -> fieldName
-            _              -> internal $ "Could not build the getter of a non member lval"
+              procName = "get_" <> varName <> "-" <> name
 
-          procName = "get_" <> unpack varName <> "-" <> name
+            proc <- newLabel $ "proc" <> procName
+            functionsTypes %= Map.insert (mkName procName) (llvmFunT pointerType [(ptr t)])
+            (proc #)
 
-        proc <- newLabel $ "proc" <> procName
-        (proc #)
+            openScope
+            name' <- insertVar "__self"
+            value <- expression' expr
+            doGet .= False
+            ref <- objectRef lval
+            doGet .= True
+            type' <- toLLVMType . O.objType $ lval
+            addInstruction $ Do Store
+              { volatile       = False
+              , address        = ref
+              , value
+              , maybeAtomicity = Nothing
+              , alignment      = 4
+              , metadata       = [] }
+            loadResult <- newLabel "loadGetter"
+            addInstruction $ loadResult := Load
+              { volatile  = False
+              , address   = ref
+              , maybeAtomicity = Nothing
+              , alignment = 4
+              , metadata  = [] }
+            terminate $ Ret (Just $ LocalReference (pointerType) loadResult) []
+            closeScope
 
-        openScope
-        name' <- insertVar "__self"
-
-        value <- expression' expr
-        doGet .= False
-        ref <- objectRef lval
-        doGet .= True
-        type' <- toLLVMType . O.objType $ lval
-        addInstruction $ Do Store
-          { volatile       = False
-          , address        = ref
-          , value
-          , maybeAtomicity = Nothing
-          , alignment      = 4
-          , metadata       = [] }
-
-        loadResult <- newLabel "loadGetter"
-        addInstruction $ loadResult := Load
-          { volatile  = False
-          , address   = ref
-          , maybeAtomicity = Nothing
-          , alignment = 4
-          , metadata  = [] }
-
-        terminate $ Ret (Just $ LocalReference (pointerType) loadResult) []
-        closeScope
-
-        blocks' <- use blocks
-        blocks .= Seq.empty
-
-        let
-          selfParam    = Parameter (ptr t) name' []
-
-        addDefinition $ GlobalDefinition functionDefaults
-              { name        = Name procName
-              , parameters  = ([selfParam],False)
-              , returnType  = pointerType
-              , basicBlocks = toList blocks' }
+            blocks' <- use blocks
+            blocks .= Seq.empty
+            let
+              selfParam    = Parameter (ptr t) name' []
+              def = GlobalDefinition functionDefaults
+                  { name        = mkName procName
+                  , parameters  = ([selfParam],False)
+                  , returnType  = pointerType
+                  , basicBlocks = toList blocks' }
+            addDefinition $ def 
 
 
 defineStructInv :: Bool -- is a declaration or a definition
@@ -673,8 +642,8 @@ defineStructInv True inv name t _ = do
         CoupInvariant -> "coupInv-"
         Invariant     -> "inv-"
         RepInvariant  -> "repInv-")
-    selfParam    = Parameter (ptr t) (Name "__self") []
-    precondParam = Parameter boolType (Name "cond") []
+    selfParam    = Parameter (ptr t) (mkName "__self") []
+    precondParam = Parameter boolType (mkName "cond") []
 
   addDefinitions $ [defineFunction procName [selfParam, precondParam] voidType]
 
@@ -709,7 +678,7 @@ defineStructInv _ inv name t expr@ Expression {loc = Location(pos,_)} = do
   (falseLabel #)
 
   terminate CondBr
-    { condition = LocalReference boolType (Name "cond")
+    { condition = LocalReference boolType (mkName "cond")
     , trueDest  = precondTrue
     , falseDest = precondFalse
     , metadata' = [] }
@@ -742,10 +711,10 @@ defineStructInv _ inv name t expr@ Expression {loc = Location(pos,_)} = do
 
   let
     selfParam    = Parameter (ptr t) name' []
-    precondParam = Parameter boolType (Name "cond") []
+    precondParam = Parameter boolType (mkName "cond") []
 
   addDefinition $ GlobalDefinition functionDefaults
-        { name        = Name procName
+        { name        = mkName procName
         , parameters  = ([selfParam, precondParam],False)
         , returnType  = voidType
         , basicBlocks = toList blocks' }

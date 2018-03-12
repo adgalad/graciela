@@ -11,10 +11,7 @@ position of Graciela internal constructs.
 -}
 
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 
 module Language.Graciela.Location
@@ -32,12 +29,11 @@ module Language.Graciela.Location
   ) where
 --------------------------------------------------------------------------------
 import           Data.Semigroup         (Semigroup (..))
-import           Text.Megaparsec.Pos    (SourcePos (..), Pos(..), unPos, unsafePos)
+import           Text.Megaparsec.Pos    (SourcePos (..), Pos(..), unPos, mkPos)
 --------------------------------------------------------------------------------
 import           Data.Serialize         (Serialize(..))
 import           GHC.Generics           (Generic)
 import           Data.Text              (unpack)
-import           Data.Word              (Word64)
 import           Data.Serialize.Get     (Get)
 import           Control.Monad          (liftM)
 import           System.FilePath.Posix  (takeFileName)
@@ -46,7 +42,7 @@ import           System.FilePath.Posix  (takeFileName)
 -- | This datatype stores information about the location of various
 -- Graciela constructs, such as Tokens, AST nodes and Procedure/Function
 -- definitions.
-data Location = Location (SourcePos, SourcePos) -- ^ A location within a file.
+newtype Location = Location (SourcePos, SourcePos) -- ^ A location within a file.
   deriving (Eq, Ord, Generic)
 
 
@@ -55,9 +51,10 @@ data Location = Location (SourcePos, SourcePos) -- ^ A location within a file.
 
 instance Serialize Location
 instance Generic Pos
+
 instance Serialize Pos where
-    put p   = put (fromIntegral (unPos p) :: Word64)
-    get     = liftM (unsafePos . fromIntegral) (get :: Get Word64)
+    put p   = put (fromIntegral (unPos p) :: Int)
+    get     = fmap (mkPos . fromIntegral) (get :: Get Int)
 
 instance Serialize SourcePos
 
@@ -90,22 +87,22 @@ gracielaDef :: Location
 gracielaDef = Location (gracielaDef', gracielaDef')
 
 gracielaDef' :: SourcePos
-gracielaDef' = SourcePos "/GRACIELA/" (unsafePos 1) (unsafePos 1)
+gracielaDef' = SourcePos "/GRACIELA/" (mkPos 1) (mkPos 1)
 
 initialPos :: String -> SourcePos
-initialPos name = SourcePos name (unsafePos 1) (unsafePos 1)
+initialPos name = SourcePos name (mkPos 1) (mkPos 1)
 -- | Shows a 'SourcePos' in a human-readable way.
 showPos :: SourcePos -> String
 showPos SourcePos { sourceName, sourceLine, sourceColumn }
   | sourceName == "/GRACIELA/" = "(in the Graciela Definition)"
   | otherwise =
-    "(" <> takeFileName (sourceName) <> ":" 
-    <> show (unPos sourceLine) <> ":" <> show (unPos sourceColumn) <> ")" 
+    "(" <> takeFileName sourceName <> ":"
+    <> show (unPos sourceLine) <> ":" <> show (unPos sourceColumn) <> ")"
 
 
 
 showRedefPos :: SourcePos -> SourcePos -> String
-showRedefPos prevDef actDef = 
-  if sourceName prevDef == sourceName actDef 
+showRedefPos prevDef actDef =
+  if sourceName prevDef == sourceName actDef
     then showPos prevDef
     else sourceName prevDef <> " " <> showPos prevDef
