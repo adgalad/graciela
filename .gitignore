@@ -32,7 +32,7 @@ cabal.config
 .build/*
 .stack-work/*
 
-graciela
+
 gratest
 
 source/Haskell/rungraciela
