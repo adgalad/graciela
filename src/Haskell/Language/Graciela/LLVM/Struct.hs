@@ -68,7 +68,7 @@ defineStruct structBaseName (ast, typeMaps) = case ast of
          , structAFields, structProcs, struct'} -> case struct' of
     DataType {abstract, abstractTypes, inv, repinv, coupinv, couple} ->
       forM_ (Map.toList typeMaps) $ \(typeMap, fromOtherModule) -> do
-
+        traceM(show(structBaseName))
         asserts <- use evalAssertions
         substitutionTable .= [typeMap]
         currentStruct .= Just ast
@@ -87,7 +87,6 @@ defineStruct structBaseName (ast, typeMaps) = case ast of
         moduleDefs %= (|> TypeDefinition (mkName name) type')
 
         defineGetters fromOtherModule couple name structType
-
         defaultConstructor fromOtherModule name structType typeMap
         defaultDestructor fromOtherModule name structType typeMap (pos structLoc)
         defaultCopy fromOtherModule name structType typeMap
@@ -591,6 +590,7 @@ defineGetters fromOtherModule couple name structType = do
               procName = "get_" <> varName <> "-" <> name
 
             proc <- newLabel $ "proc" <> procName
+            traceM $ ">>>>>>>>>" <> show (llvmFunT pointerType [(ptr t)])
             functionsTypes %= Map.insert (mkName procName) (llvmFunT pointerType [(ptr t)])
             (proc #)
 

@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Language.Graciela.LLVM.Monad where
 --------------------------------------------------------------------------------
@@ -12,6 +13,7 @@ import {-# SOURCE #-} Language.Graciela.LLVM.Type      (llvmFunT)
 
 import           Control.Lens                     (at, ix, use, (%=), (+=),
                                                    (.=), (<<+=), (?=), _head)
+import           Control.Monad.Fail               (MonadFail(..))
 import           Control.Monad.State.Class        (MonadState)
 import           Control.Monad.Trans.State.Strict (State)
 import           Data.Foldable                    (toList)
@@ -40,6 +42,9 @@ type Insts = Seq Inst
 
 newtype LLVM a = LLVM { unLLVM :: State LLVM.State a }
   deriving ( Functor, Applicative, Monad, MonadState LLVM.State)
+
+instance MonadFail LLVM where
+  fail str = undefined
 
 {- Symbol Table -}
 -- When opening a new scope, llvm wont know which variable is being called
@@ -86,7 +91,7 @@ addDefinition defs = do
           params     = (\(p,_) -> p) $ LLVM.parameters f
           paramTypes = fmap (\(LLVM.Parameter t _ _) -> t) params
           funType    = llvmFunT retType paramTypes
-        in functionsTypes %= Map.insert fName funType
+        in functionsTypes %= Map.insert fName (funType)
 
     _ -> pure ()
   moduleDefs %= (|> defs)
@@ -163,13 +168,16 @@ callFunction name args = do
     fName'  = mkName name
     fName'' = mkName $ tail name
   f <- use functionsTypes 
+
   let
     (funT', fName) = if isNothing (Map.lookup fName' f)
       then (Map.lookup fName'' f, fName'')
       else (Map.lookup fName'  f, fName')
-
+  -- forM_ f (traceM . (++"\n") .show)
   case funT' of
-    Nothing -> internal $ "Function " <> name <> " doesn't exists"
+    Nothing -> do
+      traceM "Entro!"
+      internal $ "Function " <> name <> " doesn't exists"
     Just funT -> do 
       pure Call
         { tailCallKind       = Nothing

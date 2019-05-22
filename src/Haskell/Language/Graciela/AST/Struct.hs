@@ -44,6 +44,12 @@ data Struct
     , struct'        :: Struct' }
   deriving (Generic, Serialize)
 
+instance Eq Struct where
+  (==) a b = structBaseName a == structBaseName b && structTypes a == structTypes b
+
+instance Ord Struct where
+  compare a b = compare (structLoc a) (structLoc b)
+
 fillTypes :: TypeArgs -> Fields -> Fields
 fillTypes typeArgs fields = (_2 %~ fillType typeArgs) <$> fields
 

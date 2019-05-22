@@ -87,6 +87,7 @@ import           Language.Graciela.Token         (Token (..), TokenPos (..))
 import           Control.Applicative             (Alternative)
 import           Control.Lens                    (use, view, (%=), (.=), (<<.=),
                                                   (<~), (^.), _1, _2)
+import           Control.Monad.Fail               (MonadFail(..))
 import           Control.Monad                   (MonadPlus)
 import           Control.Monad.Identity          (Identity (..))
 import           Control.Monad.IO.Class
@@ -110,6 +111,7 @@ import qualified Text.Megaparsec                 as Mega (runParserT)
 import           Text.Megaparsec.Error           (ErrorItem(..), ParseError(..),
                                                   ErrorFancy(..), parseErrorTextPretty)
 import           Text.Megaparsec                 (MonadParsec (..))
+import           Text.Megaparsec.Stream          (Stream)
 --------------------------------------------------------------------------------
 
 -- | Graciela Parser monad transformer.
@@ -121,6 +123,9 @@ newtype ParserT m a = ParserT
            , MonadReader Config
            , MonadPlus, Alternative
            , MonadIO)
+
+instance MonadFail (ParserT IO) where
+  fail str = undefined
 
 -- | Graciela Parser monad.
 type Parser = ParserT IO
@@ -230,6 +235,9 @@ instance MonadParser g => MonadParser (StateT s g) where
   getStruct           = lift . getStruct
   satisfy'            = lift . satisfy'
   match'              = lift . match'
+
+-- instance MonadFail (MonadParser IO) where 
+  -- fail = undefined
 
 pPutError :: Monad m => SourcePos -> Error -> ParserT m ()
 pPutError from e = ParserT $ do
@@ -373,8 +381,8 @@ safeIdentifier = withRecovery recover (Just <$> identifier)
      Tokens (t :| _) -> show t
 
 -- | Match an identifier and return both its name and location
-identifierAndLoc :: MonadParser m
-                 => m (Text, Location)
+identifierAndLoc :: (MonadParser m, MonadFail m) =>
+                    m (Text, Location)
 identifierAndLoc = do
   TokenPos { tok = TokId name, start, end } <- satisfy' ident
   pure (name, Location (start, end))

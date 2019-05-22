@@ -43,9 +43,10 @@ import           System.FilePath.Posix  (takeFileName)
 -- Graciela constructs, such as Tokens, AST nodes and Procedure/Function
 -- definitions.
 newtype Location = Location (SourcePos, SourcePos) -- ^ A location within a file.
-  deriving (Eq, Ord, Generic)
+  deriving (Eq, Generic)
 
-
+instance Ord Location where
+  compare (Location (a,_)) (Location(b,_)) = compare a b
 -- | Instances for Serialize of SourcePos and Pos
 -- Pos has to be instantiate manually
 

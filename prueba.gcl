@@ -55,7 +55,7 @@ func _trace (x : float) -> float
 
 main |[
   var __x__ : int;
-  var x-r
+  var x : int;
   var f : float;
   var p,q : int*;
   // var i := 0 : int;

@@ -55,8 +55,7 @@ import           LLVM.AST.Instruction
 import           LLVM.AST.IntegerPredicate   (IntegerPredicate (EQ, SGE, SLT))
 import           LLVM.AST.Linkage            (Linkage (Private))
 import           LLVM.AST.Name               (Name, mkName)
-import           LLVM.AST.Operand            (MetadataNode (..),
-                                                      Operand (..))
+import           LLVM.AST.Operand            (Operand (..))
 import           LLVM.AST.ParameterAttribute (ParameterAttribute (..))
 import           LLVM.AST.Type               (Type (..), double, ptr)
 import qualified LLVM.AST.Type               as LLVM (Type(..))

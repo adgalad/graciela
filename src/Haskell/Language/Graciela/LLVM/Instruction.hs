@@ -47,7 +47,7 @@ import           LLVM.AST.Instruction       (FastMathFlags (..),Instruction (..)
 import qualified LLVM.AST.Instruction       as LLVM (Instruction)
 import           LLVM.AST.IntegerPredicate  (IntegerPredicate (..))
 import           LLVM.AST.Name              (Name, mkName)
-import           LLVM.AST.Operand           (MetadataNode(..) ,CallableOperand, 
+import           LLVM.AST.Operand           (CallableOperand, 
                                                      Operand (..))
 import           LLVM.AST.Type              hiding (void)
 --------------------------------------------------------------------------------

@@ -31,9 +31,10 @@ import qualified LLVM.AST.Constant               as C (Constant (Float, Int, Nul
 import qualified LLVM.AST.Float                  as F (SomeFloat (Double))
 import           LLVM.AST.FloatingPointPredicate (FloatingPointPredicate (OGT, OLT))
 import           LLVM.AST.Instruction            (FastMathFlags (..),
-                                                          Instruction (..),
-                                                          Named (..),
-                                                          Terminator (..))
+                                                  Instruction (..),
+                                                  Named (..),
+                                                  Terminator (..),
+                                                  noFastMathFlags)
 import           LLVM.AST.IntegerPredicate       (IntegerPredicate (..))
 import           LLVM.AST.Name                   (Name)
 import           LLVM.AST.Operand                (Operand (..))
@@ -790,7 +791,7 @@ quantification e@Expression { loc = Location (pos, _), E.expType, exp' } = case 
               GFloat ->
                 addInstruction . (newPartial :=) $
                   (case qOp of Summation -> FAdd; Product -> FMul)
-                    NoFastMathFlags
+                    noFastMathFlags
                     e (LocalReference qType oldPartial) []
               _ -> safeOperation
                   (case expType of GInt -> 32; GChar -> 8)
@@ -1254,7 +1255,7 @@ quantification e@Expression { loc = Location (pos, _), E.expType, exp' } = case 
               GFloat ->
                 addInstruction . (newPartial :=) $
                   (case qOp of Summation -> FAdd; Product -> FMul)
-                    NoFastMathFlags
+                    noFastMathFlags
                     e (LocalReference qType oldPartial) []
               _ -> safeOperation
                   (case expType of GInt -> 32; GChar -> 8)

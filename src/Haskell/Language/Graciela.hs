@@ -121,7 +121,7 @@ defaultOptions      = Options
         ( "clang-3.5"
         , "/usr/lib/libgraciela.so")
       | isMac =
-        ( "/usr/local/bin/clang"
+        ( "clang"
         , "/usr/local/lib/libgraciela.so")
       | isWindows = internal "Windows not supported :("
       | otherwise = internal "Unknown OS, not supported :("
@@ -208,7 +208,7 @@ options =
             std' = case std of 
               Nothing   -> "-std=c++11"
               Just std' -> "-std=c++" <> std'
-          in opts { optClang = "/usr/local/bin/clang++", optCpp = std' })  
+          in opts { optClang = "clang++", optCpp = std' })  
           "stdc++xx")
       "Define c++ standard -stdc++[98,11,17]"
   ]
@@ -260,16 +260,21 @@ compile fileName options = do
               -- types = state ^. typesTable
 
             newast <- programToLLVM files program (optNoAssertions options)
+            traceM "new AST"
             let
               lltName = case optOutName options of
                 Nothing -> unpack name <> ".ll"
                 Just n  -> n <> ".t.ll"
               writeFile f = writeLLVMAssemblyToFile (File f)
 
-
+            traceM "Lets"
             {- And write it as IR on a ll file -}
             withContext $ \context -> do
+              traceM "---- Context"
               withModuleFromAST context newast (writeFile lltName)
+              traceM ">>>> Context"
+
+
 
 
             let ms = state ^. modules

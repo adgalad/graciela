@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Language.Graciela.AST.Program where
 --------------------------------------------------------------------------------
@@ -31,6 +32,8 @@ data Program
     , fullStructs :: Map Text (Struct, Map TypeArgs Bool)
     , pragmas     :: Set Pragma
     , strings     :: Map Text Int }
+
+
 
 instance Treelike Program where
   toTree Program { name, loc, defs, insts, structs, strings } =

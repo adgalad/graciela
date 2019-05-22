@@ -57,7 +57,7 @@ import qualified LLVM.AST.FloatingPointPredicate as F (FloatingPointPredicate (.
 import qualified LLVM.AST.Global                 as Global (Global (..), 
                                                   globalVariableDefaults)
 import           LLVM.AST.Instruction            (FastMathFlags (..), Instruction (..),
-                                                  Named (..), Terminator (..))
+                                                  Named (..), Terminator (..), noFastMathFlags)
 import           LLVM.AST.IntegerPredicate       (IntegerPredicate (..))
 import           LLVM.AST.Name                   (Name (..))
 import           LLVM.AST.Operand                (CallableOperand,
@@ -286,7 +286,7 @@ expression e@Expression { E.loc = (Location(pos,_)), expType, exp'} = do
         opFloat op innerOperand = do
           label <- newLabel "opFloat"
           addInstruction $ label := FMul
-            { fastMathFlags = NoFastMathFlags
+            { fastMathFlags = noFastMathFlags
             , operand0 = innerOperand
             , operand1 = constantOperand GFloat . Right $ (-1.0)
             , metadata = []}
@@ -514,25 +514,25 @@ expression e@Expression { E.loc = (Location(pos,_)), expType, exp'} = do
           label <- newLabel "floatBinaryResult"
           case op of
             Op.Plus   -> addInstruction $ label := FAdd
-              { fastMathFlags = NoFastMathFlags
+              { fastMathFlags = noFastMathFlags
               , operand0      = lOperand
               , operand1      = rOperand
               , metadata      = [] }
 
             Op.BMinus -> addInstruction $ label := FSub
-              { fastMathFlags = NoFastMathFlags
+              { fastMathFlags = noFastMathFlags
               , operand0      = lOperand
               , operand1      = rOperand
               , metadata      = [] }
 
             Op.Times  -> addInstruction $ label := FMul
-              { fastMathFlags = NoFastMathFlags
+              { fastMathFlags = noFastMathFlags
               , operand0      = lOperand
               , operand1      = rOperand
               , metadata      = [] }
 
             Op.Div   ->  addInstruction $ label := FDiv
-              { fastMathFlags = NoFastMathFlags
+              { fastMathFlags = noFastMathFlags
               , operand0      = lOperand
               , operand1      = rOperand
               , metadata      = [] }

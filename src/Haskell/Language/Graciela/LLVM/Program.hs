@@ -4,6 +4,7 @@
 module Language.Graciela.LLVM.Program where
 --------------------------------------------------------------------------------
 import           Language.Graciela.AST.Definition
+import           Language.Graciela.AST.Struct     (Struct(..))
 import           Language.Graciela.AST.Instruction (Instruction)
 import           Language.Graciela.AST.Program     hiding (structs)
 import qualified Language.Graciela.AST.Program     as P (structs)
@@ -27,7 +28,7 @@ import           Data.Array                      (listArray)
 import qualified Data.ByteString                 as BS (unpack)
 import           Data.String                     (fromString)
 import           Data.Foldable                   (toList)
-import           Data.List                       (sortOn)
+import           Data.List                       (sortOn, sortBy, sort)
 import           Data.Map.Strict                 (Map)
 import qualified Data.Map.Strict                 as Map (keys, size,
                                                          toAscList,
@@ -59,7 +60,7 @@ import           System.Info                     (arch, os)
 import           System.Process                  (readProcess)
 --------------------------------------------------------------------------------
 
--- addFile :: String -> LLVM ()
+compareTuples (_, (a, _)) (_, (b, _)) = compare a b
 
 programToLLVM :: [String]             -- ^ Files for read instructions
               -> Program              -- ^ AST
@@ -86,16 +87,18 @@ programToLLVM files
       -- TODO add also all types and abstract types as Definition's `TypeDefinition`
       program = do
         S.structs .= structs
-        fullDataTypes .= fullStructs
         stringIds .= strings
         mpragmas .= pragmas
         addStrings $ unpack name
 
         preDefinitions files
-        mapM_ (uncurry defineStruct) . Map.toList $ fullStructs
+        mapM_ (uncurry defineStruct) . sortBy compareTuples . Map.toList $ fullStructs
+        traceM ("Termino structs")
         mapM_ definition defs
+        traceM ("Termino defs")
         
         mainDefinition insts files
+        traceM ("Termino files")
         use moduleDefs
 
 
@@ -123,13 +126,12 @@ moduleToLLVM
   where 
     gModule = do
       S.structs .= structs
-      fullDataTypes .= fullStructs
       stringIds .= strings
       addStrings $ unpack name
       mpragmas .= pragmas
 
       preDefinitions files
-      mapM_ (uncurry defineStruct) . Map.toList $ fullStructs
+      mapM_ (uncurry defineStruct) . sortBy compareTuples . Map.toList $ fullStructs
 
       mapM_ definition defs
       use moduleDefs
